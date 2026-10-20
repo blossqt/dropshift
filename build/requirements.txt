@@ -1,0 +1,10 @@
+PySide6-Essentials==6.11.2
+# Qt Multimedia, for the video editor's player
+PySide6-Addons==6.11.2
+pyinstaller==6.22.3
+pillow==13.0.0
+pypdf==6.21.1
+pypdfium2==5.14.0
+pywin32==312
+# FFmpeg is not a Python package: it runs as its own program (tools\ffmpeg\),
+# fetched by bootstrap.ps1. 7-Zip is used if installed, never bundled.
