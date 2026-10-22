@@ -12,7 +12,7 @@ from functools import partial
 from pathlib import Path
 from typing import Callable
 
-from . import jobs, locate
+from . import jobs, locate, web
 from .engines import actions, archives, data, images, media, office, pdf
 
 MODES = ('convert', 'tools', 'actions')
@@ -257,6 +257,24 @@ def _build() -> list[Op]:
 OPS: list[Op] = _build()
 BY_ID = {op.id: op for op in OPS}
 
+# Opened as windows or done on the spot, so they need the file on disk the
+# moment they are chosen: not offered for something still on a web page.
+NEEDS_A_FILE_NOW = frozenset({'actions.float', 'tools.info', 'tools.edit'})
+
+
+def _web_ops(mode: str) -> list[Op]:
+    """What heads every menu for something dragged out of a web page."""
+    return [
+        Op(id='web.download', label='Download', mode=mode, kinds=ANY, run=web.save,
+           hint='Save it as it is', icon='download', verb='Downloading'),
+        Op(id='web.grabbit', label='Grabbit', mode=mode, kinds=ANY, run=web.to_grabbit,
+           hint='Hand it to Grabbit, for a video, a post or a playlist', icon='video', gui=True,
+           needs=lambda: web.grabbit() is not None),
+    ]
+
+
+WEB_OPS = {mode: _web_ops(mode) for mode in MODES}
+
 
 def split(op: Op, paths: list[Path]) -> tuple[list[Path], list[Path]]:
     """The files op works on, and the ones it would skip."""
@@ -283,7 +301,20 @@ def usable(op: Op, paths: list[Path]) -> bool:
 
 def ops_for(mode: str, paths: list[Path]) -> list[tuple[str, list[Op]]]:
     """[(group title, ops)] for the menu. Convert groups by kind of file;
-    Tools and Actions are one group each."""
+    Tools and Actions are one group each. Something from a web page gets
+    Download first, then what suits the file it will be (web.py)."""
+    if web.dragged(paths):
+        groups = [('From the web', [op for op in WEB_OPS[mode] if usable(op, paths)])]
+        if mode != 'actions' and not any(web.is_link(path) for path in paths):
+            for title, ops in _groups(mode, paths):
+                ops = [op for op in ops if not op.gui and op.id not in NEEDS_A_FILE_NOW]
+                if ops:
+                    groups.append((title, ops))
+        return groups
+    return _groups(mode, paths)
+
+
+def _groups(mode: str, paths: list[Path]) -> list[tuple[str, list[Op]]]:
     candidates = [op for op in OPS if op.mode == mode and usable(op, paths)]
     if mode != 'convert':
         return [('', candidates)] if candidates else []

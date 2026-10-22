@@ -21,7 +21,7 @@ from PySide6.QtCore import QPoint, QPointF, QRectF, Qt, QTimer, QVariantAnimatio
 from PySide6.QtGui import QFont, QFontMetrics, QGuiApplication, QPainter
 from PySide6.QtWidgets import QWidget
 
-from . import catalog, win32
+from . import catalog, web, win32
 from .catalog import KIND_TITLES, MODE_TITLES, MODES, Op
 from .ui import icons, theme
 
@@ -81,6 +81,8 @@ def human_size(size: int) -> str:
 
 def describe(paths: list[Path]) -> tuple[str, str, str]:
     """(title, subtitle, glyph) for the header."""
+    if web.dragged(paths):
+        return describe_web(paths)
     if len(paths) == 1:
         path = paths[0]
         kind = catalog.kind_of(path)
@@ -102,6 +104,20 @@ def describe(paths: list[Path]) -> tuple[str, str, str]:
     noun = 'items' if 'folder' in counts else 'files'
     glyph = next(iter(counts)) if len(counts) == 1 else 'files'
     return f'{len(paths)} {noun}', ', '.join(parts), glyph
+
+
+def describe_web(paths: list[Path]) -> tuple[str, str, str]:
+    """The header for something dragged out of a web page: what it will be, and where from."""
+    hosts = list(dict.fromkeys(web.host(path) for path in paths if web.host(path)))
+    where = f'from {hosts[0]}' if len(hosts) == 1 else 'from the web'
+    if len(paths) == 1:
+        path = paths[0]
+        if web.is_link(path):
+            return path.stem, ' · '.join(part for part in ('Link', hosts[0] if hosts else '') if part), 'link'
+        kind = catalog.kind_of(path)
+        what = 'file' if kind == 'other' else KIND_TITLES[kind].lower()
+        return path.name, f'{catalog.ext_of(path).upper()} {what} {where}', kind
+    return f'{len(paths)} items', where.capitalize(), 'files'
 
 
 class DropMenu(QWidget):
@@ -277,7 +293,8 @@ class DropMenu(QWidget):
         return item
 
     def dragEnterEvent(self, event):
-        paths = local_paths(event.mimeData())
+        # Files from Explorer; failing those, a picture or link from a web page.
+        paths = local_paths(event.mimeData()) or web.from_mime(event.mimeData())
         _dev(f'drag entered: {[p.name for p in paths]}, actions {int(event.possibleActions().value)}')
         if not paths or not (event.possibleActions() & Qt.CopyAction):
             event.ignore()

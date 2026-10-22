@@ -7,6 +7,7 @@ import ctypes
 import os
 import sys
 import traceback
+from dataclasses import replace
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Qt
@@ -14,7 +15,7 @@ from PySide6.QtGui import QCursor
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtWidgets import QApplication, QFileDialog
 
-from . import APP_NAME, __version__, catalog, suitelog
+from . import APP_NAME, __version__, catalog, suitelog, web, win32
 from .catalog import Op
 from .engines import media
 from .jobs import Job, JobRunner
@@ -84,6 +85,9 @@ class Controller(QObject):
         if op.gui:
             self._run_now(op, taken)
             return
+        if web.dragged(taken):
+            self._perform_web(op, taken, skipped)
+            return
 
         destination = None
         if op.ask_folder:
@@ -100,9 +104,23 @@ class Controller(QObject):
             title = f'{op.verb} {_name(taken)}'
         self.start_job(op, taken, skipped, title, destination)
 
+    def _perform_web(self, op: Op, taken: list[Path], skipped: list[Path]) -> None:
+        """Something from a web page: downloaded first, then whatever was chosen
+        (web.py). With no folder of its own, its results go to Downloads unless
+        Settings names a folder for them."""
+        if op.id != 'web.download':
+            op = replace(op, run=web.after_download(op.run))
+        if op.mode == 'convert' and op.id != 'web.download':
+            title = f'Converting {_name(taken)} to {op.label}'
+        else:
+            title = f'{op.verb} {_name(taken)}'
+        self.start_job(op, taken, skipped, title,
+                       output_folder=self.settings.output_folder or str(win32.downloads_folder()))
+
     def start_job(self, op: Op, files: list[Path], skipped: list[Path], title: str,
-                  destination: Path | None = None) -> None:
-        job = Job(op, files, skipped, self.settings.output_folder, destination)
+                  destination: Path | None = None, output_folder: str | None = None) -> None:
+        job = Job(op, files, skipped,
+                  self.settings.output_folder if output_folder is None else output_folder, destination)
         toast = self.toasts.show(title, 'Starting…')
         self.runner.start(job, toast.set_progress, lambda job, error: self._finished(job, error, toast))
 
@@ -114,7 +132,8 @@ class Controller(QObject):
             self.toasts.show(op.label).finish(f'{op.label} failed', str(error), error=True)
             return
         done = {'actions.copy': f'Copied {_name(paths)} - paste it into any folder',
-                'actions.copy_path': 'Copied the path' if len(paths) == 1 else f'Copied {len(paths)} paths'}
+                'actions.copy_path': 'Copied the path' if len(paths) == 1 else f'Copied {len(paths)} paths',
+                'web.grabbit': 'Handed to Grabbit'}
         if op.id in done:
             self.toasts.show(done[op.id]).finish(done[op.id])
 

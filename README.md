@@ -55,6 +55,17 @@ dates and page or word counts. **Remove metadata** is a button away.
 **Float** keeps files in a small always-on-top shelf to drag somewhere later -
 handy for collecting files from several folders.
 
+**From a web page.** Drag a picture or a link out of Chrome, Edge or Firefox
+and press a key, as with a file. Each menu starts with **Download**, which
+saves it as it is. **Grabbit** hands the address to Grabbit, when it's
+installed, for a video page, a post of several pictures or a playlist. A
+picture, or a link to a file such as a PDF, also gets the usual choices for
+that kind of file: drop it on PNG and it is downloaded, then converted. With
+no folder of its own, what it makes goes to your Downloads folder, or to the
+folder chosen in Settings. A file is named for what the server actually sent,
+so a picture whose address ends in .jpg but which arrives as a WEBP is saved
+as a WEBP.
+
 ## What it needs
 
 - **FFmpeg** for video, audio and subtitles - bundled with the app.
@@ -66,8 +77,10 @@ The tray's Settings window lists which of these it found.
 
 ## Limits
 
-- Files only. Text or pictures dragged out of a web page aren't files yet, so
-  the menu doesn't appear for them (save them first).
+- Words selected on a web page are left alone: only files, pictures and links
+  open the menu.
+- A picture behind a sign-in, or one the page made itself (a blob: address),
+  may not download: Dropshift asks the site for it as a visitor would.
 - A program running as administrator can't drop onto Dropshift; Windows blocks
   drags from a higher-privilege window to a normal one.
 - Ctrl mid-drag is also Explorer's "copy". With Tools on Ctrl, pressing it
