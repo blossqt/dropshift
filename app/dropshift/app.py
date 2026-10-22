@@ -14,7 +14,7 @@ from PySide6.QtGui import QCursor
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtWidgets import QApplication, QFileDialog
 
-from . import APP_NAME, __version__, catalog
+from . import APP_NAME, __version__, catalog, suitelog
 from .catalog import Op
 from .engines import media
 from .jobs import Job, JobRunner
@@ -307,16 +307,6 @@ def send(message: str) -> bool:
     return True
 
 
-def _log_to_file() -> None:
-    # A windowed exe (or pythonw) has nowhere to print tracebacks; keep them.
-    if sys.stderr is not None:
-        return
-    folder = Path(os.environ.get('LOCALAPPDATA', str(Path.home()))) / 'Dropshift'
-    folder.mkdir(parents=True, exist_ok=True)
-    log = open(folder / 'dropshift.log', 'a', encoding='utf-8', buffering=1)  # noqa: SIM115
-    sys.stdout = sys.stderr = log
-
-
 def self_test(argv: list[str]) -> int:
     """Load what a real start loads and answer with the version - the build's check."""
     target = argv[argv.index('--self-test') + 1] if len(argv) > argv.index('--self-test') + 1 else ''
@@ -340,7 +330,7 @@ def self_test(argv: list[str]) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv if argv is None else argv)
-    _log_to_file()
+    suitelog.start(APP_NAME)
     # Qt's video player narrates every file it opens; keep the log for our own problems.
     os.environ.setdefault('QT_LOGGING_RULES', 'qt.multimedia*=false')
     if '--self-test' in argv:
