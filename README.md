@@ -120,12 +120,15 @@ $py = "$env:LOCALAPPDATA\DropshiftBuild\venv\Scripts\python.exe"
 & $py -m unittest discover -s tests -v       # every conversion, tool and action, on real files
 & $py tests\drag_test.py                      # a real drag and drop (takes the mouse ~3 s)
 & $py tests\drag_test.py --editor             # ...a video, with Ctrl, onto Edit
+& $py tests\web_drag_test.py                  # a picture and a link out of Edge (takes the mouse ~15 s)
 & $py tests\window_test.py --exe dist\Dropshift\Dropshift.exe   # editor (video, song, GIF) + metadata, no input
 ```
 
 `test_engines.py` drives Word, Excel and PowerPoint unseen; set
 `DROPSHIFT_SKIP_OFFICE=1` to skip those. `drag_test.py` clicks only on its own
 test window and drops only onto Dropshift; anything else cancels the drag.
+`web_drag_test.py` does the same from a page of its own in an InPrivate Edge
+window, and deletes the files it makes in Downloads.
 
 ## How it works
 
