@@ -1,4 +1,4 @@
 """Dropshift: drag a file, press a key, drop it on what it should become."""
 
-__version__ = "0.1.6"
+__version__ = "0.1.7"
 APP_NAME = "Dropshift"
