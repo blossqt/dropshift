@@ -15,7 +15,7 @@ from PySide6.QtWidgets import QApplication, QFileIconProvider, QWidget
 
 from . import icons, theme
 
-SHADOW = 14
+SHADOW = 0 if theme.glass_on() else 14       # on glass, Windows draws the shadow
 WIDTH = 250
 HEADER_H = 34
 ROW_H = 34
@@ -30,6 +30,7 @@ class FloatShelf(QWidget):
         super().__init__(None, Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint
                          | Qt.NoDropShadowWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
+        theme.frost(self)
         self.setAcceptDrops(True)
         self.setMouseTracking(True)
         self.paths: list[Path] = []
@@ -148,10 +149,13 @@ class FloatShelf(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
         card = self._card
-        theme.paint_shadow(p, card, 12, SHADOW - 2, c.shadow)
-        p.setPen(c.border)
-        p.setBrush(c.card)
-        p.drawRoundedRect(card.adjusted(0.5, 0.5, -0.5, -0.5), 12, 12)
+        if theme.glass_on():
+            theme.paint_glass(p, card)
+        else:
+            theme.paint_shadow(p, card, 12, SHADOW - 2, c.shadow)
+            p.setPen(c.border)
+            p.setBrush(c.card)
+            p.drawRoundedRect(card.adjusted(0.5, 0.5, -0.5, -0.5), 12, 12)
 
         p.drawPixmap(int(card.left() + 10), int(card.top() + 9), icons.glyph('pin', c.dim, 16))
         p.setFont(theme.font(8.5, QFont.DemiBold))

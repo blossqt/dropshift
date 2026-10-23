@@ -23,6 +23,7 @@ MODE_BLURBS = {'convert': 'make a copy in another format',
 class SettingsDialog(QDialog):
     def __init__(self, settings, controller=None, parent=None):
         super().__init__(parent)
+        theme.frost(self)
         self.settings = settings
         self.controller = controller
         self.setWindowTitle('Dropshift settings')
@@ -165,6 +166,7 @@ def _status_grid() -> QWidget:
 class WelcomeDialog(QDialog):
     def __init__(self, keys: dict[str, str], parent=None):
         super().__init__(parent)
+        theme.frost(self)
         self.setWindowTitle('Dropshift')
         self.setWindowIcon(icons.app_icon())
         self.setMinimumWidth(420)

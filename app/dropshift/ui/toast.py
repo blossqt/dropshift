@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QWidget
 from .. import win32
 from . import icons, theme
 
-SHADOW = 14
+SHADOW = 0 if theme.glass_on() else 14       # on glass, Windows draws the shadow
 WIDTH = 330
 HEIGHT = 74
 SPACING = 8
@@ -26,6 +26,7 @@ class Toast(QWidget):
                          | Qt.WindowDoesNotAcceptFocus | Qt.NoDropShadowWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
+        theme.frost(self)
         self.setMouseTracking(True)
         self.resize(WIDTH + 2 * SHADOW, HEIGHT + 2 * SHADOW)
         self.title, self.detail = title, detail
@@ -101,10 +102,13 @@ class Toast(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
         card = self._card
-        theme.paint_shadow(p, card, 12, SHADOW - 2, c.shadow)
-        p.setPen(c.border)
-        p.setBrush(c.card)
-        p.drawRoundedRect(card.adjusted(0.5, 0.5, -0.5, -0.5), 12, 12)
+        if theme.glass_on():
+            theme.paint_glass(p, card)
+        else:
+            theme.paint_shadow(p, card, 12, SHADOW - 2, c.shadow)
+            p.setPen(c.border)
+            p.setBrush(c.card)
+            p.drawRoundedRect(card.adjusted(0.5, 0.5, -0.5, -0.5), 12, 12)
 
         p.drawPixmap(int(card.left() + 14), int(card.top() + 14), icons.render_app_icon(20))
         left, width = card.left() + 44, card.width() - 44 - 40

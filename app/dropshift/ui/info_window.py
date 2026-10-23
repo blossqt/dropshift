@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QFileIconProvider, QHBox
 
 from .. import catalog, win32
 from ..engines import metadata
-from . import icons
+from . import icons, theme
 
 
 class _Reader(QObject):
@@ -27,6 +27,7 @@ class InfoWindow(QWidget):
         super().__init__(None, Qt.Window)
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.setWindowIcon(icons.app_icon())
+        theme.frost(self)
         self.resize(560, 640)
         self.paths = paths
         self._strip = strip

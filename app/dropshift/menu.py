@@ -25,7 +25,7 @@ from . import catalog, web, win32
 from .catalog import KIND_TITLES, MODE_TITLES, MODES, Op
 from .ui import icons, theme
 
-SHADOW = 18
+SHADOW = 0 if theme.glass_on() else 18       # on glass, Windows draws the shadow
 CARD_W = 360
 PAD = 12
 HEADER_H = 56
@@ -128,6 +128,7 @@ class DropMenu(QWidget):
                          | Qt.WindowDoesNotAcceptFocus | Qt.NoDropShadowWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
+        theme.frost(self, fade=False)     # it opens nearly invisible, as a probe, and fades in itself
         self.setAcceptDrops(True)
         self.keys = keys
         self._mode = 'convert'
@@ -346,10 +347,13 @@ class DropMenu(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
         p.setRenderHint(QPainter.TextAntialiasing)
-        theme.paint_shadow(p, self._card, RADIUS, SHADOW - 4, c.shadow)
-        p.setPen(c.border)
-        p.setBrush(c.card)
-        p.drawRoundedRect(self._card.adjusted(0.5, 0.5, -0.5, -0.5), RADIUS, RADIUS)
+        if theme.glass_on():
+            theme.paint_glass(p, self._card)
+        else:
+            theme.paint_shadow(p, self._card, RADIUS, SHADOW - 4, c.shadow)
+            p.setPen(c.border)
+            p.setBrush(c.card)
+            p.drawRoundedRect(self._card.adjusted(0.5, 0.5, -0.5, -0.5), RADIUS, RADIUS)
 
         self._paint_header(p, c)
         for item in self._items:

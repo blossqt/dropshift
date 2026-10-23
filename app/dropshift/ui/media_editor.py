@@ -441,6 +441,7 @@ class MediaEditor(QWidget):
         super().__init__(None, Qt.Window)
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.setWindowIcon(icons.app_icon())
+        theme.frost(self)
         self.path = path
         self._export = export
         self._rotate = 0
