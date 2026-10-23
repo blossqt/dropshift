@@ -42,7 +42,7 @@ a = Analysis(
     [os.path.join(app_dir, 'main.py')],
     pathex=[app_dir],
     binaries=qt_plugin_binaries,
-    datas=[],
+    datas=[(os.path.join(app_dir, 'dropshift', 'ui', 'backdrop.jpg'), os.path.join('dropshift', 'ui'))],     # the window's faint photo
     hiddenimports=hiddenimports,
     hookspath=[],
     excludes=[

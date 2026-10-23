@@ -138,3 +138,8 @@ trigger key going down. The menu (`menu.py`) opens nearly invisible under the
 cursor and nudges the cursor a pixel so Windows' drag loop notices it; only
 when Windows hands it the drag (DragEnter) does it know there are files - and
 which - and fade in. Drags of anything else never show it.
+
+## Photo
+
+The cherry blossom faintly behind Dropshift's settings and welcome windows is a photo by Iewek Gnos on Unsplash
+(https://unsplash.com/photos/0-oPmFrlubo), used under the Unsplash License.
