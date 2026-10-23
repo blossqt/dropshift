@@ -176,6 +176,27 @@ def latest_published(repo: str) -> str | None:
     return result.stdout.strip().lstrip('v') if result.returncode == 0 and result.stdout.strip() else None
 
 
+def require_shared_files_current() -> None:
+    """The suite's shared files in this app (ui\\suitetheme.py, suitelink.py and the rest) must be
+    Hanami's originals: a release with a stale copy ships an app that looks or links differently
+    from the rest of the suite - it happened once, the glass's rim fixes left out of three apps.
+    Hanami's tests\\check_copies.py says which differ; for Hanami itself, a warning will do."""
+    checker = Path.home() / 'Documents' / 'Hanami' / 'tests' / 'check_copies.py'
+    if not checker.is_file():
+        return
+    result = subprocess.run([sys.executable, str(checker)], text=True, capture_output=True,
+                            encoding='utf-8', errors='replace')
+    stale = [line.strip() for line in result.stdout.splitlines() if line.startswith(('DIFFERS', 'MISSING'))]
+    if ROOT.name.lower() == 'hanami':
+        for line in stale:
+            print(f'   warning: {line} - copy it over before releasing that app', flush=True)
+        return
+    mine = [line for line in stale if str(ROOT).lower() in line.lower()]
+    if mine:
+        fail("shared files here differ from Hanami's originals - run Hanami's tests\\check_copies.py "
+             '--sync, commit, then release:\n   ' + '\n   '.join(mine))
+
+
 def require_clean_and_pushed() -> str:
     if run('git', 'status', '--porcelain').stdout.strip():
         fail('there are uncommitted changes - commit them first, so the release is exactly a '
@@ -309,6 +330,7 @@ def main() -> int:
     if not notes.strip() and not args.dry_run:
         fail('say what is new: --notes "..." or --notes-file notes.md')
     GH = find_gh()
+    require_shared_files_current()
     head = require_clean_and_pushed()
     previous = latest_published(config['repo'])
     if previous and not (parse_version(version) or ()) > (parse_version(previous) or ()):
