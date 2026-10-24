@@ -227,6 +227,18 @@ class Media(Base):
         out = self.run_op('tools.join_audio', self.s['wav'], self.s['mp3']).outputs[0]
         self.assertAlmostEqual(float(self.probe(out)['format']['duration']), 3.0, delta=0.2)
 
+    def test_join_videos_of_different_sizes_one_silent(self):
+        out = self.run_op('tools.join_video', self.s['mp4'], self.s['silent']).outputs[0]
+        self.assertEqual(out.name, 'Joined.mp4')
+        info = self.probe(out)
+        self.assertAlmostEqual(float(info['format']['duration']), 3.0, delta=0.3)
+        video = next(s for s in info['streams'] if s['codec_type'] == 'video')
+        self.assertEqual((video['width'], video['height']), (320, 240), "the first one's size")
+        self.assertIn('audio', [s['codec_type'] for s in info['streams']], 'sound throughout, silent where none')
+
+    def test_join_videos_needs_two(self):
+        self.assertFalse(catalog.usable(catalog.BY_ID['tools.join_video'], [self.s['mp4']]))
+
     def test_progress_is_reported(self):
         seen = []
         op = catalog.BY_ID['convert.video.webm']
@@ -257,6 +269,15 @@ class Pdf(Base):
         turned = self.run_op('tools.rotate_right', self.s['pdf']).outputs[0]
         self.assertEqual(PdfReader(turned).pages[0].rotation, 90)
         self.run_op('tools.strip', self.s['pdf'])
+
+    @unittest.skipUnless(office.available('Word') and not SKIP_OFFICE, 'Word not installed')
+    def test_combine_takes_office_files_too(self):
+        from pypdf import PdfReader
+        combined = self.run_op('tools.combine', self.s['txt'], self.s['pdf']).outputs[0]
+        reader = PdfReader(combined)
+        self.assertEqual(len(reader.pages), 4, 'the document as a page, then the PDF')
+        self.assertIn('Dropshift test document', reader.pages[0].extract_text())
+        self.assertEqual(sorted(p.name for p in self.folder.glob('notes*.pdf')), [], 'nothing left over beside it')
 
     def test_compress_shrinks_or_says_why(self):
         job = Job(catalog.BY_ID['tools.compress'], [self.s['pdf']], [])
@@ -337,6 +358,63 @@ class Actions(Base):
 
 
 @unittest.skipIf(SKIP_OFFICE, 'DROPSHIFT_SKIP_OFFICE=1')
+class Custom(Base):
+    """Drop targets of one's own, run for real through cmd."""
+
+    def tearDown(self):
+        catalog.set_custom([])
+
+    def target(self, command: str, exts: str = '', each: bool = True, mode: str = 'tools'):
+        catalog.set_custom([{'name': 'Mine', 'command': command, 'mode': mode, 'exts': exts, 'each': each}])
+        return catalog.BY_ID['custom.0']
+
+    def test_a_command_on_each_file_and_what_it_made(self):
+        self.target('copy "{file}" "{folder}\\{stem} copy.{ext}"', exts='txt')
+        job = self.run_op('custom.0', self.s['txt'])
+        self.assertEqual([p.name for p in job.outputs], ['notes copy.txt'])
+        self.assertEqual(job.outputs[0].read_text(encoding='utf-8'), self.s['txt'].read_text(encoding='utf-8'))
+
+    def test_once_for_all_of_them(self):
+        self.target('type {files} > "{folder}\\together.txt"', each=False)
+        job = self.run_op('custom.0', self.s['txt'], self.s['srt'])
+        text = (self.folder / 'together.txt').read_text(encoding='utf-8', errors='replace')
+        self.assertIn('second paragraph', text)
+        self.assertIn('Hello there', text)
+        self.assertEqual([p.name for p in job.outputs], ['together.txt'])
+
+    def test_only_for_its_kinds_and_in_its_menu(self):
+        op = self.target('echo', exts='png, jpeg', mode='actions')
+        self.assertTrue(op.takes(self.s['png']))
+        self.assertTrue(op.takes(self.s['jpg']), 'jpeg is jpg')
+        self.assertFalse(op.takes(self.s['txt']))
+        actions = [o for _, ops in catalog.ops_for('actions', [self.s['png']]) for o in ops]
+        tools = [o for _, ops in catalog.ops_for('tools', [self.s['png']]) for o in ops]
+        self.assertIn(op, actions)
+        self.assertNotIn(op, tools)
+
+    def test_a_failing_command_says_so(self):
+        op = self.target('echo it went wrong 1>&2 & exit 3')
+        job = Job(op, [self.s['txt']], [])
+        error = job.execute()
+        self.assertIn('Mine stopped with code 3', error)
+        self.assertIn('it went wrong', error)
+        self.assertEqual(job.outputs, [])
+
+    def test_the_file_goes_on_the_end_without_placeholders(self):
+        from dropshift.engines import custom
+        self.assertEqual(custom.command_line('notepad', [self.s['txt']]), f'notepad "{self.s["txt"]}"')
+
+    def test_kept_in_settings(self):
+        from dropshift.settings import Settings
+        settings = Settings()
+        before = settings.custom
+        try:
+            settings.custom = [{'name': 'Mine', 'command': 'echo', 'mode': 'tools', 'exts': '', 'each': True}]
+            self.assertEqual(Settings().custom[0]['name'], 'Mine')
+        finally:
+            settings.custom = before
+
+
 class Office(Base):
     @classmethod
     def setUpClass(cls):

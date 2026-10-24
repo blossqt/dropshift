@@ -2,7 +2,9 @@
 
 Three modes, one per trigger key: Convert (make a copy in another format),
 Tools (change the file - compress, rotate, split...) and Actions (do something
-with the file itself - copy it, float it, open a terminal there).
+with the file itself - copy it, float it, open a terminal there). Drop targets
+of the person's own (a command line, set up in Settings) join Tools or Actions
+(set_custom).
 """
 
 from __future__ import annotations
@@ -13,7 +15,7 @@ from pathlib import Path
 from typing import Callable
 
 from . import jobs, locate, web
-from .engines import actions, archives, data, images, media, office, pdf
+from .engines import actions, archives, custom, data, images, media, office, pdf
 
 MODES = ('convert', 'tools', 'actions')
 MODE_TITLES = {'convert': 'Convert', 'tools': 'Tools', 'actions': 'Actions'}
@@ -217,12 +219,14 @@ def _build() -> list[Op]:
          by_kind({'image': images.strip_metadata, 'video': media.strip_metadata,
                   'audio': media.strip_metadata, 'pdf': pdf.strip_metadata}),
          'Copy without camera, location and author details', 'shield', verb='Cleaning')
-    tool('combine', 'Combine PDF', {'image', 'pdf'}, pdf.combine,
+    tool('combine', 'Combine PDF', {'image', 'pdf'} | set(pdf.BY_OFFICE), pdf.combine,
          'Join them, in this order, into one PDF', 'combine', min_files=2, verb='Combining')
     tool('split', 'Split pages', {'pdf'}, each(pdf.split), 'Save every page as its own PDF',
          'split', verb='Splitting')
     tool('join_audio', 'Join audio', {'audio'}, media.join_audio, 'Play them one after another, as one file',
          'combine', min_files=2, needs=_has_ffmpeg, verb='Joining')
+    tool('join_video', 'Join videos', {'video'}, media.join_videos,
+         'Play them one after another, as one MP4', 'combine', min_files=2, needs=_has_ffmpeg, verb='Joining')
     tool('mute', 'Remove sound', {'video'}, each(media.mute), 'Make a silent copy', 'mute',
          needs=_has_ffmpeg, verb='Muting')
     tool('frame', 'Grab frame', {'video'}, each(media.snapshot), 'Save a still from a third of the way in',
@@ -256,6 +260,28 @@ def _build() -> list[Op]:
 
 OPS: list[Op] = _build()
 BY_ID = {op.id: op for op in OPS}
+CUSTOM: list[Op] = []           # the person's own, from Settings (set_custom)
+
+
+def set_custom(entries: list[dict]) -> None:
+    """Make the drop targets of the person's own, as Settings describes them: {'name', 'command',
+    'mode' ('tools' or 'actions'), 'exts' (as 'png, jpg'; empty for any file), 'each' (once for
+    each file, else once for all)}."""
+    for op in CUSTOM:
+        BY_ID.pop(op.id, None)
+    CUSTOM.clear()
+    for index, entry in enumerate(entries):
+        name, command = str(entry.get('name', '')).strip(), str(entry.get('command', '')).strip()
+        if not name or not command:
+            continue
+        exts = frozenset(SAME.get(e, e) for e in (part.strip().lower().lstrip('.')
+                                                  for part in str(entry.get('exts', '')).split(',')) if e)
+        each_file = bool(entry.get('each', True))
+        op = Op(id=f'custom.{index}', label=name, mode='actions' if entry.get('mode') == 'actions' else 'tools',
+                kinds=ANY, exts=exts, run=custom.runner(name, command, each_file), hint=command, icon='terminal',
+                verb='Running')
+        CUSTOM.append(op)
+        BY_ID[op.id] = op
 
 # Opened as windows or done on the spot, so they need the file on disk the
 # moment they are chosen: not offered for something still on a web page.
@@ -279,6 +305,9 @@ WEB_OPS = {mode: _web_ops(mode) for mode in MODES}
 def split(op: Op, paths: list[Path]) -> tuple[list[Path], list[Path]]:
     """The files op works on, and the ones it would skip."""
     taken = [p for p in paths if op.takes(p)]
+    if op.id == 'tools.combine':
+        # Office files only where Office can make PDFs of them.
+        taken = [p for p in taken if kind_of(p) not in pdf.BY_OFFICE or office.available(pdf.BY_OFFICE[kind_of(p)])]
     if op.mode == 'convert':
         # Converting to what it already is would only make a duplicate.
         taken = [p for p in taken if same_format(p) != op.target]
@@ -315,7 +344,7 @@ def ops_for(mode: str, paths: list[Path]) -> list[tuple[str, list[Op]]]:
 
 
 def _groups(mode: str, paths: list[Path]) -> list[tuple[str, list[Op]]]:
-    candidates = [op for op in OPS if op.mode == mode and usable(op, paths)]
+    candidates = [op for op in OPS + CUSTOM if op.mode == mode and usable(op, paths)]
     if mode != 'convert':
         return [('', candidates)] if candidates else []
     present = []

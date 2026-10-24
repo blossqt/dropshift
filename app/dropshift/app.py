@@ -43,6 +43,7 @@ class Controller(QObject):
     def __init__(self):
         super().__init__()
         self.settings = Settings()
+        catalog.set_custom(self.settings.custom)
         keys = self.settings.keys
         self.watcher = DragWatcher(keys, self)
         self.menu = DropMenu(keys)
@@ -245,6 +246,7 @@ class Controller(QObject):
         self._dialog.activateWindow()
 
     def _settings_changed(self) -> None:
+        catalog.set_custom(self.settings.custom)
         keys = self.settings.keys
         self.watcher.set_keys(keys)
         self.menu.keys = keys

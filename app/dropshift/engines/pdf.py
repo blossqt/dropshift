@@ -4,6 +4,7 @@ rotating and slimming them down (pypdf)."""
 from __future__ import annotations
 
 import io
+import tempfile
 from pathlib import Path
 
 from .. import jobs
@@ -78,19 +79,34 @@ def _reader(src: Path):
     return reader
 
 
+# Kinds of file Combine PDF makes PDFs of first, and the Office app that does.
+BY_OFFICE = {'document': 'Word', 'text': 'Word', 'sheet': 'Excel', 'slides': 'PowerPoint'}
+
+
 def combine(job: Job) -> None:
-    """PDFs and pictures, in the order they were dropped, as one PDF."""
+    """PDFs, pictures and Office files, in the order they were dropped, as one PDF. Office files
+    are made into PDFs by Office first, in a folder of their own that goes afterwards."""
     from pypdf import PdfWriter
+
+    from ..catalog import kind_of
+    from . import office
+    makers = {'Word': office.word, 'Excel': office.excel, 'PowerPoint': office.powerpoint}
     writer = PdfWriter()
-    for index, src in enumerate(job.files):
-        if images.normal_ext(src) == 'pdf':
-            writer.append(_reader(src))
-        else:
-            writer.append(io.BytesIO(images.pdf_page(src)))
-        job.progress((index + 1) / len(job.files))
-    out = job.output_named(job.files[0], 'Combined.pdf')
-    with open(out, 'wb') as handle:
-        writer.write(handle)
+    with tempfile.TemporaryDirectory(prefix='dropshift-') as scratch:
+        for index, src in enumerate(job.files):
+            kind = kind_of(src)
+            if images.normal_ext(src) == 'pdf':
+                writer.append(_reader(src))
+            elif kind in BY_OFFICE:
+                made = Job(job.op, [src], [], output_folder=scratch)
+                makers[BY_OFFICE[kind]](made, src, 'pdf')
+                writer.append(_reader(made.outputs[0]))
+            else:
+                writer.append(io.BytesIO(images.pdf_page(src)))
+            job.progress((index + 1) / len(job.files))
+        out = job.output_named(job.files[0], 'Combined.pdf')
+        with open(out, 'wb') as handle:
+            writer.write(handle)
     job.add(out)
 
 

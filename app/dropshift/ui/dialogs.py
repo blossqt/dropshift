@@ -6,8 +6,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
                                QFileDialog, QFormLayout, QGridLayout, QHBoxLayout, QLabel,
-                               QLineEdit, QMessageBox, QPushButton, QRadioButton, QVBoxLayout,
-                               QWidget)
+                               QLineEdit, QListWidget, QMessageBox, QPushButton, QRadioButton,
+                               QVBoxLayout, QWidget)
 
 from .. import __version__, locate, win32
 from ..catalog import MODE_TITLES, MODES
@@ -86,6 +86,22 @@ class SettingsDialog(QDialog):
         layout.addLayout(row)
 
         layout.addSpacing(8)
+        layout.addWidget(_heading('Your own drop targets'))
+        self._custom = [dict(entry) for entry in settings.custom]
+        self._custom_list = QListWidget()
+        self._custom_list.setMaximumHeight(96)
+        self._custom_list.itemDoubleClicked.connect(lambda _: self._edit_custom())
+        layout.addWidget(self._custom_list)
+        row = QHBoxLayout()
+        for text, act in (('Add…', self._add_custom), ('Change…', self._edit_custom), ('Remove', self._remove_custom)):
+            button = QPushButton(text)
+            button.clicked.connect(act)
+            row.addWidget(button)
+        row.addStretch(1)
+        layout.addLayout(row)
+        self._show_custom()
+
+        layout.addSpacing(8)
         self._startup = QCheckBox('Start Dropshift when I sign in to Windows')
         self._startup.setChecked(win32.starts_with_windows())
         layout.addWidget(self._startup)
@@ -119,6 +135,34 @@ class SettingsDialog(QDialog):
             self._folder.setText(folder)
             self._elsewhere.setChecked(True)
 
+    def _show_custom(self, select: int = -1) -> None:
+        self._custom_list.clear()
+        for entry in self._custom:
+            self._custom_list.addItem(f"{entry['name']}  ·  {MODE_TITLES[entry.get('mode', 'tools')]}")
+        if self._custom:
+            self._custom_list.setCurrentRow(select if 0 <= select < len(self._custom) else len(self._custom) - 1)
+
+    def _add_custom(self) -> None:
+        dialog = CustomDialog({}, self)
+        if dialog.exec():
+            self._custom.append(dialog.entry())
+            self._show_custom(len(self._custom) - 1)
+
+    def _edit_custom(self) -> None:
+        row = self._custom_list.currentRow()
+        if not 0 <= row < len(self._custom):
+            return
+        dialog = CustomDialog(self._custom[row], self)
+        if dialog.exec():
+            self._custom[row] = dialog.entry()
+            self._show_custom(row)
+
+    def _remove_custom(self) -> None:
+        row = self._custom_list.currentRow()
+        if 0 <= row < len(self._custom):
+            del self._custom[row]
+            self._show_custom(row)
+
     def _save(self):
         keys = {mode: combo.currentData() for mode, combo in self._combos.items()}
         chosen = [k for k in keys.values() if k != 'off']
@@ -126,11 +170,64 @@ class SettingsDialog(QDialog):
             QMessageBox.warning(self, 'Dropshift', 'Each key can open only one menu.')
             return
         self.settings.keys = keys
+        self.settings.custom = self._custom
         self.settings.output_folder = self._folder.text().strip() if self._elsewhere.isChecked() else ''
         if self._startup.isChecked() != win32.starts_with_windows():
             win32.set_start_with_windows(self._startup.isChecked())
         if self.controller is not None and self._tray.isChecked() != self.settings.tray_shown:
             self.controller.set_tray_shown(self._tray.isChecked())
+        self.accept()
+
+
+class CustomDialog(QDialog):
+    """One drop target of the person's own: a name, a command line, where it shows and for what."""
+
+    def __init__(self, entry: dict, parent=None):
+        super().__init__(parent)
+        theme.frost(self)
+        self.setWindowTitle('Drop target')
+        self.setMinimumWidth(520)
+        layout = QVBoxLayout(self)
+        form = QFormLayout()
+        self._name = QLineEdit(entry.get('name', ''))
+        self._name.setPlaceholderText('Half size with ImageMagick')
+        form.addRow('Name:', self._name)
+        self._command = QLineEdit(entry.get('command', ''))
+        self._command.setPlaceholderText('magick "{file}" -resize 50% "{folder}\\{stem} half.{ext}"')
+        form.addRow('Command:', self._command)
+        note = QLabel('{file} is the file’s path, {folder} its folder, {name} its name, {stem} its name without '
+                      'the extension and {ext} the extension - put them in quotes. {files} is every file, '
+                      'each in quotes. With none of these, the file goes on the end.')
+        note.setWordWrap(True)
+        note.setEnabled(False)
+        form.addRow('', note)
+        self._mode = QComboBox()
+        for mode in ('tools', 'actions'):
+            self._mode.addItem(MODE_TITLES[mode], mode)
+        self._mode.setCurrentIndex(1 if entry.get('mode') == 'actions' else 0)
+        form.addRow('Shows in:', self._mode)
+        self._exts = QLineEdit(entry.get('exts', ''))
+        self._exts.setPlaceholderText('png, jpg - empty for any file')
+        form.addRow('For:', self._exts)
+        self._each = QComboBox()
+        self._each.addItem('Once for each file', True)
+        self._each.addItem('Once for all of them', False)
+        self._each.setCurrentIndex(0 if entry.get('each', True) else 1)
+        form.addRow('Runs:', self._each)
+        layout.addLayout(form)
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(self._ok)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def entry(self) -> dict:
+        return {'name': self._name.text().strip(), 'command': self._command.text().strip(),
+                'mode': self._mode.currentData(), 'exts': self._exts.text().strip(), 'each': self._each.currentData()}
+
+    def _ok(self) -> None:
+        if not self._name.text().strip() or not self._command.text().strip():
+            QMessageBox.warning(self, 'Dropshift', 'It needs a name and a command.')
+            return
         self.accept()
 
 

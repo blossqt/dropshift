@@ -256,6 +256,52 @@ def join_audio(job: Job) -> None:
     job.add(out)
 
 
+def _shown_size(info: dict) -> tuple[int, int]:
+    """A video's picture size as it plays - turned, if it is to be shown turned (a phone's)."""
+    stream = _streams(info, 'video')[0]
+    width, height = int(stream.get('width') or 0), int(stream.get('height') or 0)
+    turn = stream.get('tags', {}).get('rotate') or next(
+        (side.get('rotation') for side in stream.get('side_data_list', []) if 'rotation' in side), 0)
+    try:
+        turned = abs(int(float(turn))) % 180 == 90
+    except ValueError:
+        turned = False
+    return (height, width) if turned else (width, height)
+
+
+def join_videos(job: Job) -> None:
+    """Videos one after another, as one MP4: each brought to the first one's size (letterboxed if
+    its shape differs) and frame rate; one without sound is silent for its length."""
+    files = job.files
+    infos = [probe(f) for f in files]
+    if any(not _streams(info, 'video') for info in infos):
+        raise UserError('One of them has no picture to join')
+    width, height = _shown_size(infos[0])
+    width, height = width - width % 2, height - height % 2
+    rate = _streams(infos[0], 'video')[0].get('avg_frame_rate') or '30'
+    if rate in ('0/0', '0'):
+        rate = '30'
+    total = sum(duration(info) for info in infos)
+    out = job.output_named(files[0], 'Joined.mp4')
+    args: list = []
+    for f in files:
+        args += ['-i', f]
+    parts = []
+    for i, info in enumerate(infos):
+        parts.append(f'[{i}:v:0]scale={width}:{height}:force_original_aspect_ratio=decrease,'
+                     f'pad={width}:{height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps={rate},format=yuv420p[v{i}]')
+        if _streams(info, 'audio'):
+            parts.append(f'[{i}:a:0]aresample=48000,aformat=channel_layouts=stereo[a{i}]')
+        else:
+            parts.append(f'anullsrc=channel_layout=stereo:sample_rate=48000,'
+                         f'atrim=duration={max(duration(info), 0.04):.3f}[a{i}]')
+    pieces = ''.join(f'[v{i}][a{i}]' for i in range(len(files)))
+    args += ['-filter_complex', ';'.join(parts) + f';{pieces}concat=n={len(files)}:v=1:a=1[v][a]',
+             '-map', '[v]', '-map', '[a]', *H264, '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', out]
+    run(job, args, total)
+    job.add(out)
+
+
 # --------------------------------------------------------------------------- the media editor
 
 SOUND_FORMATS = ('mp3', 'm4a', 'wav', 'flac', 'ogg', 'opus', 'aiff')

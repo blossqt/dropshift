@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 from PySide6.QtCore import QSettings
 
 from .catalog import MODES
@@ -48,6 +50,19 @@ class Settings:
     @tray_shown.setter
     def tray_shown(self, value: bool) -> None:
         self._store.setValue('tray/shown', bool(value))
+
+    @property
+    def custom(self) -> list[dict]:
+        """Drop targets of the person's own (catalog.set_custom says what each holds)."""
+        try:
+            entries = json.loads(str(self._store.value('custom/targets', '[]')))
+        except ValueError:
+            return []
+        return [e for e in entries if isinstance(e, dict)] if isinstance(entries, list) else []
+
+    @custom.setter
+    def custom(self, entries: list[dict]) -> None:
+        self._store.setValue('custom/targets', json.dumps(entries))
 
     @property
     def welcomed(self) -> bool:
