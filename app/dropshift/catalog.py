@@ -50,10 +50,24 @@ SAME = {'jpeg': 'jpg', 'jpe': 'jpg', 'jfif': 'jpg', 'tif': 'tiff', 'aif': 'aiff'
 ANY = frozenset({'*'})
 
 
+_kinds: dict[Path, str] = {}        # kind_of's answers, for the drag under way (fresh() at each)
+
+
 def kind_of(path: Path) -> str:
-    if path.is_dir():
-        return 'folder'
-    return _BY_EXT.get(ext_of(path), 'other')
+    """'folder', or the kind of file by its extension - each path looked at once a drag: each
+    choice of the menu asks of every file, and asking the disk each time took 1.5 s for 400."""
+    kind = _kinds.get(path)
+    if kind is None:
+        kind = 'folder' if path.is_dir() else _BY_EXT.get(ext_of(path), 'other')
+        if len(_kinds) > 20000:
+            _kinds.clear()
+        _kinds[path] = kind
+    return kind
+
+
+def fresh() -> None:
+    """A new drag: files are looked at again, as they are now."""
+    _kinds.clear()
 
 
 def ext_of(path: Path) -> str:
@@ -87,7 +101,7 @@ class Op:
     verb: str = 'Working on'     # "Converting photo.png"
 
     def takes(self, path: Path) -> bool:
-        if self.also and same_format(path) in self.also and not path.is_dir():
+        if self.also and same_format(path) in self.also and kind_of(path) != 'folder':
             return True
         if '*' not in self.kinds and kind_of(path) not in self.kinds:
             return False
@@ -313,7 +327,8 @@ def split(op: Op, paths: list[Path]) -> tuple[list[Path], list[Path]]:
         taken = [p for p in taken if same_format(p) != op.target]
     if op.id == 'convert.archive.' + op.target or op.id == 'tools.extract':
         taken = [p for p in taken if archives.readable(p)]
-    skipped = [p for p in paths if p not in taken]
+    kept = set(taken)
+    skipped = [p for p in paths if p not in kept]
     return taken, skipped
 
 

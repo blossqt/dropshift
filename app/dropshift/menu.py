@@ -304,6 +304,7 @@ class DropMenu(QWidget):
             return
         if not self._known or paths != self._paths:
             self._paths, self._known = paths, True
+            catalog.fresh()
             self._probe.stop()
             self._relayout()
             self._fade.stop()

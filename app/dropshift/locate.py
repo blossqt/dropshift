@@ -45,6 +45,7 @@ def ffprobe() -> Path | None:
 
 
 @functools.cache
+@functools.cache
 def seven_zip() -> Path | None:
     roots = [os.environ.get('ProgramFiles', r'C:\Program Files'),
              os.environ.get('ProgramFiles(x86)', r'C:\Program Files (x86)')]

@@ -29,6 +29,7 @@ UTF8 = 65001
 
 
 @functools.cache
+@functools.cache
 def available(app: str) -> bool:
     return win32.com_class_registered(f'{app}.Application')
 

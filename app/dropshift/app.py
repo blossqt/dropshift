@@ -10,7 +10,7 @@ import traceback
 from dataclasses import replace
 from pathlib import Path
 
-from PySide6.QtCore import QObject, Qt
+from PySide6.QtCore import QObject, Qt, QTimer
 from PySide6.QtGui import QCursor
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtWidgets import QApplication, QFileDialog
@@ -32,6 +32,7 @@ from .watcher import DragWatcher
 
 # Tests run a second copy beside a real one under a name of their own.
 SERVER_NAME = os.environ.get('DROPSHIFT_INSTANCE') or f'dropshift-{os.environ.get("USERNAME", "user")}'
+ASKED_TOO_LONG = 2000       # ms a connection to Dropshift's socket gets to say what it wants
 APP_ID = 'Suite.Dropshift'
 
 
@@ -274,14 +275,25 @@ class Controller(QObject):
         self._server.listen(SERVER_NAME)
 
     def _connection(self) -> None:
-        socket = self._server.nextPendingConnection()
-        socket.waitForReadyRead(500)
+        """Someone at Dropshift's socket - a second start of it, or Hanami: what it says is read
+        once it has arrived. Waited for here, one that took its time froze Dropshift."""
+        while self._server.hasPendingConnections():
+            socket = self._server.nextPendingConnection()
+            socket.readyRead.connect(lambda s=socket: self._asked(s))
+            socket.disconnected.connect(socket.deleteLater)
+            QTimer.singleShot(ASKED_TOO_LONG, socket, lambda s=socket: s.property('asked') or s.abort())
+            if socket.bytesAvailable():
+                self._asked(socket)
+
+    def _asked(self, socket) -> None:
+        if socket.property('asked'):
+            return
+        socket.setProperty('asked', True)
         message = bytes(socket.readAll()).decode('utf-8', 'replace').strip()
         reply = self.command(message)
         if reply:
             socket.write(reply.encode('utf-8'))
-            socket.waitForBytesWritten(500)
-        socket.disconnectFromServer()
+        socket.disconnectFromServer()               # once what was written has gone
 
     def command(self, message: str) -> str:
         words = message.split()

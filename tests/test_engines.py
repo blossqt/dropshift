@@ -703,5 +703,30 @@ class Coverage(unittest.TestCase):
         self.assertEqual(untested, [])
 
 
+
+class MenuTests(unittest.TestCase):
+    def test_many_files_are_quick_to_offer_choices_for(self):
+        # The menu comes up mid-drag, the program the drag came from waiting on it: 400 files took
+        # 1.5 s (each file's kind asked of the disk again for each choice), and 25-50 ms each repaint
+        # while a choice was hovered (catalog.split, which was quadratic too).
+        import time
+        folder = Path(tempfile.mkdtemp(prefix='dropshift-menu-'))
+        paths = []
+        for i in range(400):
+            path = folder / f'f{i}.{["png", "mp4", "pdf", "docx", "zip", "txt"][i % 6]}'
+            path.write_bytes(b'x')
+            paths.append(path)
+        catalog.fresh()
+        started = time.perf_counter()
+        for mode in catalog.MODES:
+            groups = catalog.ops_for(mode, paths)
+            for _, ops in groups:
+                for op in ops:
+                    catalog.split(op, paths)
+        self.assertLess(time.perf_counter() - started, 0.5)
+        self.assertEqual(catalog.kind_of(folder), 'folder')
+        self.assertEqual(catalog.kind_of(paths[0]), 'image')
+
+
 if __name__ == '__main__':
     unittest.main()
