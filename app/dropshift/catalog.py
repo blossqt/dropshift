@@ -14,8 +14,8 @@ from functools import partial
 from pathlib import Path
 from typing import Callable
 
-from . import jobs, locate, web
-from .engines import actions, archives, custom, data, images, media, office, pdf
+from . import jobs, locate, suiteocr, web
+from .engines import actions, archives, custom, data, images, media, ocr, office, pdf
 
 MODES = ('convert', 'tools', 'actions')
 MODE_TITLES = {'convert': 'Convert', 'tools': 'Tools', 'actions': 'Actions'}
@@ -227,6 +227,9 @@ def _build() -> list[Op]:
          verb='Flipping')
     tool('grayscale', 'Grayscale', {'image'}, each(images.grayscale), 'Make a black-and-white copy',
          'grayscale', verb='Converting')
+    tool('ocr', 'Copy text', {'image', 'pdf'}, ocr.copy_text,
+         'Read the words in it and copy them - Windows reads them, on this PC', 'scan',
+         needs=suiteocr.available, verb='Reading')
     tool('info', 'Show metadata', ANY, None,
          'See what it says about itself: camera, location, author, codecs...', 'tag', gui=True)
     tool('strip', 'Remove metadata', {'image', 'video', 'audio', 'pdf'},

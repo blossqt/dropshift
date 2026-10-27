@@ -8,3 +8,11 @@ pypdfium2==5.14.0
 pywin32==312
 # FFmpeg is not a Python package: it runs as its own program (tools\ffmpeg\),
 # fetched by bootstrap.ps1. 7-Zip is used if installed, never bundled.
+# Windows' own text recognition (suiteocr.py: Hanami's screen text, Dropshift's Copy text)
+winrt-runtime==3.2.1
+winrt-Windows.Foundation==3.2.1
+winrt-Windows.Foundation.Collections==3.2.1
+winrt-Windows.Globalization==3.2.1
+winrt-Windows.Graphics.Imaging==3.2.1
+winrt-Windows.Media.Ocr==3.2.1
+winrt-Windows.Storage.Streams==3.2.1

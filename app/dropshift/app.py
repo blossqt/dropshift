@@ -6,16 +6,17 @@ from __future__ import annotations
 import ctypes
 import os
 import sys
+import threading
 import traceback
 from dataclasses import replace
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Qt, QTimer
-from PySide6.QtGui import QCursor
+from PySide6.QtGui import QCursor, QGuiApplication
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtWidgets import QApplication, QFileDialog
 
-from . import APP_NAME, __version__, catalog, suitelog, web, win32
+from . import APP_NAME, __version__, catalog, suitelog, suiteocr, web, win32
 from .catalog import Op
 from .engines import media
 from .jobs import Job, JobRunner
@@ -64,6 +65,9 @@ class Controller(QObject):
         self._make_tray()
         self._listen()
         self.watcher.start()
+        # Windows' text readers made now, off the UI thread: the drop menu asks whether there are
+        # any (for Copy text) mid-drag, where making them would hold the menu up.
+        threading.Thread(target=suiteocr.available, daemon=True).start()
         if not self.settings.welcomed and os.environ.get('DROPSHIFT_DEV') != '1':
             self.settings.welcomed = True
             self.show_welcome()
@@ -143,6 +147,11 @@ class Controller(QObject):
         op = job.op
         if error:
             toast.finish(f'{op.label} failed', error, error=True)
+            return
+        if job.text:                            # Copy text: what was read, ready to paste
+            QGuiApplication.clipboard().setText(job.text)
+            first = ' '.join(job.text.split())
+            toast.finish('Copied the text', first if len(first) <= 90 else first[:88] + '…')
             return
         outputs = job.outputs
         notes = list(job.notes)
@@ -352,6 +361,9 @@ def self_test(argv: list[str]) -> int:
     from PySide6.QtMultimedia import QMediaFormat
     if not QMediaFormat().supportedFileFormats(QMediaFormat.Decode):
         return 1
+    # Windows' text recognition came along, for Copy text.
+    from winrt.windows.graphics.imaging import SoftwareBitmap  # noqa: F401
+    from winrt.windows.media.ocr import OcrEngine  # noqa: F401
     answer = __version__
     if target:
         Path(target).write_text(answer, encoding='utf-8')

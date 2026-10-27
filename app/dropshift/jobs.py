@@ -82,6 +82,7 @@ class Job:
         self.skipped = skipped
         self.destination = destination      # for Move to / Copy to
         self.outputs: list[Path] = []
+        self.text = ''                      # what was read, for the clipboard (Copy text)
         self.notes: list[str] = []
         self._output_folder = Path(output_folder) if output_folder else None
         self._claimed: list[Path] = []

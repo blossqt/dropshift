@@ -285,6 +285,46 @@ class Pdf(Base):
         self.assertTrue(job.outputs or job.notes)
 
 
+@unittest.skipUnless(__import__('dropshift.suiteocr').suiteocr.available(), 'Windows has no text reader set up here')
+class CopyText(Base):
+    """tools.ocr: the words in a picture, or a PDF's pages, read and put in job.text (the clipboard's)."""
+
+    def picture(self, name: str, text: str, size=(900, 160)) -> Path:
+        from PIL import ImageDraw, ImageFont
+        image = Image.new('RGB', size, 'white')
+        font = ImageFont.truetype(str(Path(os.environ.get('WINDIR', r'C:\Windows')) / 'Fonts' / 'segoeui.ttf'), 28)
+        ImageDraw.Draw(image).text((30, 50), text, fill='#222222', font=font)
+        path = self.folder / name
+        image.save(path)
+        return path
+
+    def test_a_picture(self):
+        job = self.run_op('tools.ocr', self.picture('receipt.png', 'Order 4471 shipped on 27 October'))
+        self.assertEqual(job.text, 'Order 4471 shipped on 27 October')
+        self.assertEqual(job.outputs, [], 'nothing saved: it goes on the clipboard')
+
+    def test_a_scanned_pdf_and_one_with_its_own_text(self):
+        scan = self.folder / 'scan.pdf'
+        Image.open(self.picture('page.png', 'Scanned page with no text layer')).save(scan, resolution=100)
+        self.assertIn('Scanned page with no text layer', self.run_op('tools.ocr', scan).text)
+        from PySide6.QtGui import QPageSize, QPainter, QPdfWriter
+        typed = self.folder / 'typed.pdf'
+        writer = QPdfWriter(str(typed))
+        writer.setPageSize(QPageSize(QPageSize.A4))
+        painter = QPainter(writer)
+        painter.drawText(200, 400, 'Typed text, taken as it is')
+        painter.end()
+        self.assertEqual(self.run_op('tools.ocr', typed).text, 'Typed text, taken as it is')
+
+    def test_several_at_once_and_none_found(self):
+        job = self.run_op('tools.ocr', self.picture('one.png', 'First picture'), self.picture('two.png', 'Second picture'))
+        self.assertEqual(job.text, 'First picture\n\nSecond picture')
+        blank = self.folder / 'blank.png'
+        Image.new('RGB', (400, 200), 'white').save(blank)
+        job = Job(catalog.BY_ID['tools.ocr'], [blank], [])
+        self.assertIn('No text found in blank.png', job.execute())
+
+
 class DataAndArchives(Base):
     def test_csv_json_round_trip(self):
         out = self.run_op('convert.sheet.json', self.s['csv']).outputs[0]

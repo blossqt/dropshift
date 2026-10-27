@@ -9,6 +9,11 @@ hiddenimports = [
     'win32com', 'win32com.client', 'pythoncom', 'pywintypes',
 ]
 
+# Windows' text recognition (suiteocr.py, for Copy text), imported only when first used.
+hiddenimports += ['winrt.runtime', 'winrt.system', 'winrt.windows.foundation', 'winrt.windows.foundation.collections',
+                  'winrt.windows.globalization', 'winrt.windows.graphics.imaging', 'winrt.windows.media.ocr',
+                  'winrt.windows.storage.streams']
+
 # Qt's plugins, named here rather than left to PyInstaller's Qt hook. The hook
 # drops any plugin whose Qt libraries it finds by a second path - and a build
 # run from inside a packaged app, such as the Claude desktop app, sees AppData

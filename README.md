@@ -21,7 +21,7 @@ desktop, a download bar - and while the button is still held, press:
 | Key   | Menu    | What's in it |
 |-------|---------|--------------|
 | Shift | Convert | a copy in another format: PNG, JPG, WEBP, AVIF, GIF, ICO, PDF; MP4, MOV, WEBM, MKV, GIF, MP3; Word, PDF, XLSX, CSV, PPTX; ZIP, 7Z... |
-| Ctrl  | Tools   | edit video, audio or GIFs, compress, half size, rotate, flip, grayscale, show metadata, remove metadata, combine into a PDF, split pages, join audio, remove sound, grab a frame, zip, extract |
+| Ctrl  | Tools   | edit video, audio or GIFs, compress, half size, rotate, flip, grayscale, copy text (from pictures and scanned PDFs), show metadata, remove metadata, combine into a PDF, split pages, join audio, remove sound, grab a frame, zip, extract |
 | Alt   | Actions | copy (to paste anywhere), copy path, float, move to, copy to, terminal here, open with, properties |
 
 The menu appears under the cursor; drop the file on a choice. Results are
@@ -72,6 +72,8 @@ as a WEBP.
 - **Microsoft Word, Excel and PowerPoint** for documents, spreadsheets and
   slides (and PDF to Word). Without them those choices simply don't appear.
 - **7-Zip**, if installed, for 7Z, RAR and ISO archives. ZIP and TAR work without it.
+- **Windows' text recognition** for Copy text: built into Windows, reading the languages set up in
+  Settings, Time & language. It runs on this PC; nothing is sent anywhere.
 
 The tray's Settings window lists which of these it found.
 
