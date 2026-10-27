@@ -12,20 +12,31 @@ the same): Hanami reads the screen with it, Dropshift dropped pictures and scans
 - Windows reads one language at a time, set up in Windows' language settings. Its English reader
   skips Chinese, Japanese and Korean outright, and its Chinese one garbles English ("Fnday",
   "d ue"). So when one of those is set up besides the first language, both read the picture and
-  their words are put together: the CJK reader's words with Chinese characters (kana, hangul) in
-  them, and the first reader's other words where they don't cover one of those.
+  their words are put together (_together): the first reader's words, and the CJK reader's where
+  the first found nothing.
+- The Chinese reader also takes big, bold or narrow capitals for Chinese characters: a game's
+  "GRAVE MATTERS" came out as "鼐 MATTERS", "VICTORY" as "训昶". Over Chinese the English reader
+  finds nothing at all (not a word on 180 lines of it, 12 to 56 px, in four fonts), so where it
+  did find a word that one stays, unless Chinese characters cover most of it (TRUSTED).
+- The Chinese reader splits digits and punctuation apart ("27", "：", "18"), and reads some the
+  English one misses: a timer, "27:18:51:47", or the "：3" in "下载完成：3 个文件". Touching
+  pieces are joined again, and a colon or comma between digits or letters made plain (_glued).
 """
 
 from __future__ import annotations
 
 import asyncio
 import threading
+import unicodedata
 from dataclasses import dataclass
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QImage
 
 ENLARGE = 2.0
+TRUSTED = 0.75          # a first-language word gives way only to CJK characters covering this much of it
+TOUCHING = 0.3          # pieces closer than this many heights apart are one word (_glued),
+LEANING = 0.5           # and punctuation this close leans on what is before it
 _CJK_LANGUAGES = ('zh', 'ja', 'ko')
 
 
@@ -90,12 +101,18 @@ def has_cjk(text: str) -> bool:
     return any(is_ideograph(ch) for ch in text)
 
 
+def _spaced(ch: str) -> bool:
+    """Chinese punctuation ('：', '。') and full-width forms carry their own space."""
+    return is_cjk(ch) and not is_ideograph(ch)
+
+
 def join(words) -> str:
     """Words as they are written: with spaces between, except between Chinese or Japanese
-    characters, which have none."""
+    characters, which have none, and round Chinese punctuation."""
     out = ''
     for word in words:
-        if out and not (is_cjk(out[-1]) and is_cjk(word.text[:1] or ' ')):
+        after = word.text[:1] or ' '
+        if out and not (is_cjk(out[-1]) and is_cjk(after) or _spaced(out[-1]) or _spaced(after)):
             out += ' '
         out += word.text
     return out
@@ -214,11 +231,46 @@ def recognize(image: QImage, early=None) -> list[Line]:
 
 
 def _together(read: list[list[list[Word]]]) -> list[Line]:
-    """The first reader's words and the CJK readers' CJK words, as lines (_lines)."""
-    cjk = [word for lines in read[1:] for words in lines for word in words if has_cjk(word.text)]
-    others = [word for words in read[0] for word in words
-              if not has_cjk(word.text) and not any(word.overlap(c) > 0.3 for c in cjk)]
-    return _lines(cjk + others)
+    """The first reader's words, unless CJK characters cover most of one (TRUSTED), then each CJK
+    reader's words where nothing is yet, as lines (_lines)."""
+    later = [[word for words in lines for word in _glued(words)] for lines in read[1:]]
+    cjk = [word for words in later for word in words if has_cjk(word.text)]
+    taken = []
+    for word in (word for words in read[0] for word in words):
+        under = [c for c in cjk if word.overlap(c) > 0.3]
+        if not under or _covered(word, under) < TRUSTED:
+            taken.append(word)
+    for words in later:
+        taken += [word for word in words if not any(word.overlap(t) > 0.3 for t in taken)]
+    return _lines(taken)
+
+
+def _covered(word: Word, others: list[Word]) -> float:
+    """How much of word's width the others cover together, 0 to 1."""
+    total, end = 0.0, word.x
+    for left, right in sorted((max(word.x, o.x), min(word.x + word.w, o.x + o.w)) for o in others):
+        left = max(left, end)
+        if right > left:
+            total += right - left
+            end = right
+    return total / max(1e-6, word.w)
+
+
+def _glued(words: list[Word]) -> list[Word]:
+    """A CJK reader's line with its touching pieces that aren't CJK characters made one word
+    ('27', '：', '18' as '27:18'), and their full-width punctuation made plain."""
+    out: list[Word] = []
+    for word in sorted(words, key=lambda w: w.x):
+        last = out[-1] if out else None
+        reach = TOUCHING if word.text[:1].isalnum() else LEANING
+        if (last is not None and not has_cjk(last.text) and not has_cjk(word.text)
+                and word.x - (last.x + last.w) < reach * max(last.h, word.h)):
+            top, bottom = min(last.y, word.y), max(last.y + last.h, word.y + word.h)
+            out[-1] = Word(last.text + word.text, last.x, top, word.x + word.w - last.x, bottom - top)
+        else:
+            out.append(word)
+    return [Word(unicodedata.normalize('NFKC', w.text), w.x, w.y, w.w, w.h)
+            if not has_cjk(w.text) and any(ch.isalnum() for ch in w.text) else w for w in out]
 
 
 def _lines(words: list[Word]) -> list[Line]:
