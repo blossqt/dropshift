@@ -37,6 +37,7 @@ ENLARGE = 2.0
 TRUSTED = 0.75          # a first-language word gives way only to CJK characters covering this much of it
 TOUCHING = 0.3          # pieces closer than this many heights apart are one word (_glued),
 LEANING = 0.5           # and punctuation this close leans on what is before it
+LINE_GAP = 2.5          # heights: words further apart than this, though level, are in different columns
 _CJK_LANGUAGES = ('zh', 'ja', 'ko')
 
 
@@ -232,17 +233,65 @@ def recognize(image: QImage, early=None) -> list[Line]:
 
 def _together(read: list[list[list[Word]]]) -> list[Line]:
     """The first reader's words, unless CJK characters cover most of one (TRUSTED), then each CJK
-    reader's words where nothing is yet, as lines (_lines)."""
-    later = [[word for words in lines for word in _glued(words)] for lines in read[1:]]
-    cjk = [word for words in later for word in words if has_cjk(word.text)]
-    taken = []
-    for word in (word for words in read[0] for word in words):
-        under = [c for c in cjk if word.overlap(c) > 0.3]
-        if not under or _covered(word, under) < TRUSTED:
-            taken.append(word)
-    for words in later:
-        taken += [word for word in words if not any(word.overlap(t) > 0.3 for t in taken)]
-    return _lines(taken)
+    reader's words where nothing is yet.
+
+    The lines are Windows' own: it keeps columns apart, where grouping words by height alone put a
+    sidebar's item, a message's line and a side panel's link level with it into one line, and a
+    drag down the message took in the sidebar too. A CJK reader's word joins a line it sits in or
+    beside (_row_for), as in "混合 text 和中文"; the rest stay in their own reader's lines."""
+    later = [[_glued(words) for words in lines] for lines in read[1:]]
+    cjk = [word for lines in later for words in lines for word in words if has_cjk(word.text)]
+    rows: list[_Row] = []
+    for words in read[0]:
+        kept = [word for word in words if not (under := [c for c in cjk if word.overlap(c) > 0.3])
+                or _covered(word, under) < TRUSTED]
+        if kept:
+            rows.append(_Row(kept))
+    taken = [word for row in rows for word in row.words]
+    for lines in later:
+        found, alone = [], []
+        for words in lines:
+            free = [word for word in words if not any(word.overlap(t) > 0.3 for t in taken)]
+            own = [word for word in free if not _join(word, rows)]
+            if own:
+                alone.append(_Row(own))
+            found += free
+        taken += found
+        rows += alone
+    lines = [Line(tuple(sorted(row.words, key=lambda w: w.x))) for row in rows]
+    return sorted(lines, key=lambda line: (line.top, line.words[0].x))
+
+
+class _Row:
+    """A line being put together, with its bounds."""
+
+    def __init__(self, words: list[Word]):
+        self.words = list(words)
+        self.top = min(w.y for w in words)
+        self.bottom = max(w.y + w.h for w in words)
+        self.left = min(w.x for w in words)
+        self.right = max(w.x + w.w for w in words)
+
+    def add(self, word: Word) -> None:
+        self.words.append(word)
+        self.top, self.bottom = min(self.top, word.y), max(self.bottom, word.y + word.h)
+        self.left, self.right = min(self.left, word.x), max(self.right, word.x + word.w)
+
+
+def _join(word: Word, rows: list[_Row]) -> bool:
+    """Put word into the line it sits in, or beside - level with it, and no further off its end
+    than LINE_GAP heights (further is another column). False if there is none."""
+    best, off = None, 0.0
+    for row in rows:
+        middle = (row.top + row.bottom) / 2
+        if not (row.top <= word.cy <= row.bottom and abs(middle - word.cy) < max(word.h, row.bottom - row.top) * 0.5):
+            continue
+        apart = max(0.0, row.left - (word.x + word.w), word.x - row.right)
+        if apart <= LINE_GAP * word.h and (best is None or apart < off):
+            best, off = row, apart
+    if best is not None:
+        best.add(word)
+    return best is not None
 
 
 def _covered(word: Word, others: list[Word]) -> float:
@@ -271,19 +320,3 @@ def _glued(words: list[Word]) -> list[Word]:
             out.append(word)
     return [Word(unicodedata.normalize('NFKC', w.text), w.x, w.y, w.w, w.h)
             if not has_cjk(w.text) and any(ch.isalnum() for ch in w.text) else w for w in out]
-
-
-def _lines(words: list[Word]) -> list[Line]:
-    """Words into lines - those whose middles are level - top to bottom, each left to right."""
-    rows: list[list[Word]] = []
-    for word in sorted(words, key=lambda w: (w.cy, w.x)):
-        for row in rows:
-            top = min(w.y for w in row)
-            bottom = max(w.y + w.h for w in row)
-            if top <= word.cy <= bottom and abs((top + bottom) / 2 - word.cy) < max(word.h, bottom - top) * 0.5:
-                row.append(word)
-                break
-        else:
-            rows.append([word])
-    lines = [Line(tuple(sorted(row, key=lambda w: w.x))) for row in rows]
-    return sorted(lines, key=lambda line: (line.top, line.words[0].x))
