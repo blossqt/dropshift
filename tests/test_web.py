@@ -248,8 +248,37 @@ class WebDragTests(unittest.TestCase):
         self.assertEqual(job.outputs[0].read_bytes(), PNG)
         self.assertEqual([path for path, _ in Site.seen], ['/gone.jpg', '/a_large.jpg'])
 
+    def test_a_search_results_picture(self):
+        # The picture sits in a link to its page: the drag's address is that page (behind
+        # StockCake's robot check), the picture is in its HTML, as a resizing server's address.
+        from urllib.parse import quote
+        shown = f'{self.base}/_next/image?url={quote(self.base + "/a.jpg", safe="")}&w=640&q=75'
+        mime = browser_drag(f'{self.base}/checked', 'a.jpg', 'https://stock.example.com/s/cherry-blossom',
+                            f'<a href="{self.base}/checked"><img alt="A blossom" data-src="x" src="{shown}"></a>')
+        paths = web.from_mime(mime)
+        self.assertEqual(web.source(paths[0]).url, shown)
+        self.assertFalse(web.is_link(paths[0]))
+        job = self.run_job(catalog.WEB_OPS['actions'][0], paths)
+        self.assertEqual(job.outputs[0].read_bytes(), JPEG)
+        self.assertEqual(Site.seen, [('/a.jpg', 'https://stock.example.com/s/cherry-blossom')])
+
+    def test_a_link_with_a_picture_in_it_is_still_a_link(self):
+        mime = browser_drag('https://example.com/story', 'A story.url', 'https://example.com/',
+                            '<a href="https://example.com/story"><img src="https://example.com/t.jpg"></a>')
+        paths = web.from_mime(mime)
+        self.assertEqual(web.source(paths[0]).url, 'https://example.com/story')
+        self.assertTrue(web.is_link(paths[0]))
+
 
 class SuiteWebTests(unittest.TestCase):
+    def test_a_resizing_servers_picture(self):
+        self.assertEqual(web.suiteweb.fuller('https://site.example/_next/image?url=%2Fp%2Fa.jpg&w=640'),
+                         'https://site.example/p/a.jpg')
+        base = 'https://images.stockcake.com/public/d/d/f/ddf7aab9-167f-4728-bc3c-46252abde868'
+        from urllib.parse import quote
+        self.assertEqual(web.suiteweb.fuller(f'https://stockcake.com/_next/image?url={quote(base + "_large/b.jpg", safe="")}&w=384'),
+                         f'{base}/b.jpg')
+
     def test_stockcakes_sizes(self):
         base = 'https://images.stockcake.com/public/d/d/f/ddf7aab9-167f-4728-bc3c-46252abde868'
         for size in ('_large', '_medium', '_small'):

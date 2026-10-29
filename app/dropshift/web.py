@@ -17,6 +17,7 @@ for a video page or a post of several pictures.
 from __future__ import annotations
 
 import base64
+from html import unescape as html_unescape
 import hashlib
 import os
 import re
@@ -109,6 +110,12 @@ def from_mime(mime) -> list[Path]:
     names = suggested_names(mime)
     page = _page_of(mime)
     picture = len(urls) == 1 and mime.hasHtml() and '<img' in mime.html().lower()
+    if picture and not (names and names[0].lower().endswith('.url')):
+        # A picture inside a link - a search result's: the drag's address is the link's page
+        # (StockCake's, behind its robot check), the picture is in the HTML.
+        shown = _picture_in(mime.html(), page or urls[0])
+        if shown and shown != urls[0]:
+            page, urls = page or urls[0], [shown]
     paths = []
     for index, url in enumerate(urls):
         name, link = name_for(url, names[index] if index < len(names) else '', picture)
@@ -116,6 +123,27 @@ def from_mime(mime) -> list[Path]:
         _SOURCES[path] = Source(url, page, link)
         paths.append(path)
     return paths
+
+
+_IMG = re.compile(r'<img\b[^>]*>', re.IGNORECASE)
+_ATTR = r'''(?<![\w-]){}\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))'''
+
+
+def _picture_in(html: str, base: str) -> str:
+    """The address of the first picture in a drag's HTML - its src, or the largest in its srcset
+    when src is only a placeholder - made whole against the page."""
+    tag = _IMG.search(html or '')
+    if not tag:
+        return ''
+    found = {}
+    for name in ('src', 'srcset'):
+        match = re.search(_ATTR.format(name), tag.group(0), re.IGNORECASE)
+        found[name] = html_unescape(next((g for g in match.groups() if g), '')) if match else ''
+    src = found['src']
+    if (not src or src.startswith('data:')) and found['srcset']:
+        src = found['srcset'].split(',')[-1].split()[0]
+    url = urllib.parse.urljoin(base, src) if src else ''
+    return url if url.startswith(('http://', 'https://')) else ''
 
 
 def suggested_names(mime) -> list[str]:
