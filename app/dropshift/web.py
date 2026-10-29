@@ -241,8 +241,9 @@ def fetch(path: Path, progress: Callable[[float], None] = lambda fraction: None)
 
 def _reply(found: Source, path: Path):
     """The server's answer for a stand-in: for a picture a site shows smaller than it keeps
-    it (suiteweb.fuller), the full-size one if that answers with a picture."""
-    full = '' if found.link else suiteweb.fuller(found.url)
+    it (suiteweb.best), the full-size one, if it still answers."""
+    full = '' if found.link else suiteweb.best(found.url, found.page)
+    full = '' if full == found.url else full
     headers = {'User-Agent': USER_AGENT, 'Accept': '*/*'}
     if found.page:
         headers['Referer'] = found.page

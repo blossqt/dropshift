@@ -233,7 +233,7 @@ class WebDragTests(unittest.TestCase):
         # As StockCake's page shows .../<id>_large/<name>.jpg: the full one is fetched instead.
         from unittest import mock
         small, full = f'{self.base}/a_large.jpg', f'{self.base}/a.jpg'
-        with mock.patch.object(web.suiteweb, 'fuller', lambda url: full if url == small else ''):
+        with mock.patch.object(web.suiteweb, 'best', lambda url, referer='': full if url == small else url):
             paths = web.from_mime(browser_drag(small, html=f'<img src="{small}">'))
             job = self.run_job(catalog.WEB_OPS['actions'][0], paths)
         self.assertEqual(job.outputs[0].read_bytes(), JPEG)
@@ -242,7 +242,7 @@ class WebDragTests(unittest.TestCase):
     def test_the_shown_picture_when_there_is_no_fuller_one(self):
         from unittest import mock
         small = f'{self.base}/a_large.jpg'
-        with mock.patch.object(web.suiteweb, 'fuller', lambda url: f'{self.base}/gone.jpg'):
+        with mock.patch.object(web.suiteweb, 'best', lambda url, referer='': f'{self.base}/gone.jpg'):
             paths = web.from_mime(browser_drag(small, html=f'<img src="{small}">'))
             job = self.run_job(catalog.WEB_OPS['actions'][0], paths)
         self.assertEqual(job.outputs[0].read_bytes(), PNG)
@@ -260,7 +260,8 @@ class WebDragTests(unittest.TestCase):
         self.assertFalse(web.is_link(paths[0]))
         job = self.run_job(catalog.WEB_OPS['actions'][0], paths)
         self.assertEqual(job.outputs[0].read_bytes(), JPEG)
-        self.assertEqual(Site.seen, [('/a.jpg', 'https://stock.example.com/s/cherry-blossom')])
+        self.assertEqual(set(Site.seen), {('/a.jpg', 'https://stock.example.com/s/cherry-blossom')},
+                         'only the picture, asked about and fetched: never the page or the resizing server')
 
     def test_a_link_with_a_picture_in_it_is_still_a_link(self):
         mime = browser_drag('https://example.com/story', 'A story.url', 'https://example.com/',
@@ -271,21 +272,7 @@ class WebDragTests(unittest.TestCase):
 
 
 class SuiteWebTests(unittest.TestCase):
-    def test_a_resizing_servers_picture(self):
-        self.assertEqual(web.suiteweb.fuller('https://site.example/_next/image?url=%2Fp%2Fa.jpg&w=640'),
-                         'https://site.example/p/a.jpg')
-        base = 'https://images.stockcake.com/public/d/d/f/ddf7aab9-167f-4728-bc3c-46252abde868'
-        from urllib.parse import quote
-        self.assertEqual(web.suiteweb.fuller(f'https://stockcake.com/_next/image?url={quote(base + "_large/b.jpg", safe="")}&w=384'),
-                         f'{base}/b.jpg')
-
-    def test_stockcakes_sizes(self):
-        base = 'https://images.stockcake.com/public/d/d/f/ddf7aab9-167f-4728-bc3c-46252abde868'
-        for size in ('_large', '_medium', '_small'):
-            self.assertEqual(web.suiteweb.fuller(f'{base}{size}/crystalline-pink-blossom-stockcake.jpg'),
-                             f'{base}/crystalline-pink-blossom-stockcake.jpg')
-        self.assertEqual(web.suiteweb.fuller(f'{base}/crystalline-pink-blossom-stockcake.jpg'), '')
-        self.assertEqual(web.suiteweb.fuller('https://example.com/a_large/b.jpg'), '')
+    """The rules for full-size pictures are tested in Hanami, which keeps suiteweb.py."""
 
     def test_robot_checks(self):
         self.assertTrue(web.suiteweb.robot_check(403, {'cf-mitigated': 'challenge', 'server': 'cloudflare'}))
