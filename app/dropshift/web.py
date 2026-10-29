@@ -24,12 +24,16 @@ import shutil
 import struct
 import subprocess
 import tempfile
+import urllib.error
 import urllib.parse
 import urllib.request
 import winreg
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
+
+from . import suiteweb
+from .jobs import UserError
 
 ROOT = Path(tempfile.gettempdir()) / 'Dropshift' / 'web'
 USER_AGENT = ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
@@ -189,11 +193,7 @@ def fetch(path: Path, progress: Callable[[float], None] = lambda fraction: None)
         path.write_bytes(data)
         progress(1.0)
         return path
-    headers = {'User-Agent': USER_AGENT, 'Accept': '*/*'}
-    if found.page:
-        headers['Referer'] = found.page
-    request = urllib.request.Request(found.url, headers=headers)
-    with urllib.request.urlopen(request, timeout=TIMEOUT) as reply:
+    with _reply(found, path) as reply:
         target = renamed_for(path, reply.headers.get_content_type(), found.link,
                              reply.headers.get_filename() or '')
         total = int(reply.headers.get('Content-Length') or 0)
@@ -209,6 +209,44 @@ def fetch(path: Path, progress: Callable[[float], None] = lambda fraction: None)
                     progress(done / total)
     progress(1.0)
     return target
+
+
+def _reply(found: Source, path: Path):
+    """The server's answer for a stand-in: for a picture a site shows smaller than it keeps
+    it (suiteweb.fuller), the full-size one if that answers with a picture."""
+    full = '' if found.link else suiteweb.fuller(found.url)
+    headers = {'User-Agent': USER_AGENT, 'Accept': '*/*'}
+    if found.page:
+        headers['Referer'] = found.page
+    for url in ([full] if full else []) + [found.url]:
+        try:
+            reply = urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=TIMEOUT)
+        except urllib.error.HTTPError as error:
+            if url == full:
+                continue
+            if suiteweb.robot_check(error.code, error.headers or {}):
+                raise UserError(_robot_check(found)) from None
+            raise
+        except OSError:
+            if url == full:
+                continue
+            raise
+        if url == full and not reply.headers.get_content_type().startswith('image/'):
+            reply.close()
+            continue
+        if suiteweb.robot_check(reply.status, reply.headers):
+            reply.close()
+            raise UserError(_robot_check(found))
+        return reply
+    raise UserError(f'Could not download {path.name}')
+
+
+def _robot_check(found: Source) -> str:
+    site = urllib.parse.urlsplit(found.url).hostname or 'That site'
+    site = site[4:] if site.startswith('www.') else site
+    if found.link:
+        return f"{site} checks for robots before it shows this page, so it can't be downloaded. Drag the picture itself instead."
+    return f"{site} checks for robots before it gives out this file, so it can't be downloaded."
 
 
 def renamed_for(path: Path, content_type: str, link: bool, offered: str = '') -> Path:

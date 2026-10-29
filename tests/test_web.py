@@ -72,7 +72,17 @@ class Site(BaseHTTPRequestHandler):
 
     def do_GET(self):
         Site.seen.append((self.path, self.headers.get('Referer', '')))
-        body, kind = {'/a.jpg': (JPEG, 'image/jpeg'), '/media/abc?format=jpg': (PNG, 'image/png'),
+        if self.path == '/checked':                     # as Cloudflare answers a program
+            body = b'<html><title>Just a moment...</title></html>'
+            self.send_response(403)
+            self.send_header('Content-Type', 'text/html; charset=UTF-8')
+            self.send_header('Server', 'cloudflare')
+            self.send_header('cf-mitigated', 'challenge')
+            self.send_header('Content-Length', str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        body, kind = {'/a.jpg': (JPEG, 'image/jpeg'), '/a_large.jpg': (PNG, 'image/png'), '/media/abc?format=jpg': (PNG, 'image/png'),
                       '/article': (b'<html><body>Hello</body></html>', 'text/html; charset=utf-8')}.get(
             self.path, (b'', 'text/plain'))
         self.send_response(200 if body else 404)
@@ -210,6 +220,49 @@ class WebDragTests(unittest.TestCase):
         self.assertEqual(paths[0].name, 'image.png')
         job = self.run_job(catalog.WEB_OPS['actions'][0], paths)
         self.assertEqual(job.outputs[0].read_bytes(), PNG)
+
+    def test_a_page_behind_a_robot_check(self):
+        paths = web.from_mime(browser_drag(f'{self.base}/checked', 'Crystalline Pink Blossom.url'))
+        job = Job(catalog.WEB_OPS['actions'][0], paths, [], str(self.out))
+        error = job.execute()
+        self.assertIn('checks for robots', error)
+        self.assertIn('Drag the picture itself instead', error)
+        self.assertEqual(list(self.out.iterdir()), [], 'the check is not saved as the page')
+
+    def test_the_full_size_picture(self):
+        # As StockCake's page shows .../<id>_large/<name>.jpg: the full one is fetched instead.
+        from unittest import mock
+        small, full = f'{self.base}/a_large.jpg', f'{self.base}/a.jpg'
+        with mock.patch.object(web.suiteweb, 'fuller', lambda url: full if url == small else ''):
+            paths = web.from_mime(browser_drag(small, html=f'<img src="{small}">'))
+            job = self.run_job(catalog.WEB_OPS['actions'][0], paths)
+        self.assertEqual(job.outputs[0].read_bytes(), JPEG)
+        self.assertEqual([path for path, _ in Site.seen], ['/a.jpg'])
+
+    def test_the_shown_picture_when_there_is_no_fuller_one(self):
+        from unittest import mock
+        small = f'{self.base}/a_large.jpg'
+        with mock.patch.object(web.suiteweb, 'fuller', lambda url: f'{self.base}/gone.jpg'):
+            paths = web.from_mime(browser_drag(small, html=f'<img src="{small}">'))
+            job = self.run_job(catalog.WEB_OPS['actions'][0], paths)
+        self.assertEqual(job.outputs[0].read_bytes(), PNG)
+        self.assertEqual([path for path, _ in Site.seen], ['/gone.jpg', '/a_large.jpg'])
+
+
+class SuiteWebTests(unittest.TestCase):
+    def test_stockcakes_sizes(self):
+        base = 'https://images.stockcake.com/public/d/d/f/ddf7aab9-167f-4728-bc3c-46252abde868'
+        for size in ('_large', '_medium', '_small'):
+            self.assertEqual(web.suiteweb.fuller(f'{base}{size}/crystalline-pink-blossom-stockcake.jpg'),
+                             f'{base}/crystalline-pink-blossom-stockcake.jpg')
+        self.assertEqual(web.suiteweb.fuller(f'{base}/crystalline-pink-blossom-stockcake.jpg'), '')
+        self.assertEqual(web.suiteweb.fuller('https://example.com/a_large/b.jpg'), '')
+
+    def test_robot_checks(self):
+        self.assertTrue(web.suiteweb.robot_check(403, {'cf-mitigated': 'challenge', 'server': 'cloudflare'}))
+        self.assertTrue(web.suiteweb.robot_check(503, {'server': 'cloudflare'}))
+        self.assertFalse(web.suiteweb.robot_check(200, {'server': 'cloudflare'}))
+        self.assertFalse(web.suiteweb.robot_check(403, {'server': 'nginx'}))
 
 
 if __name__ == '__main__':
