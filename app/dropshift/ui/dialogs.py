@@ -4,15 +4,16 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
-from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
-                               QFileDialog, QFormLayout, QFrame, QGridLayout, QHBoxLayout, QLabel,
+from PySide6.QtWidgets import (QButtonGroup, QComboBox, QDialog, QDialogButtonBox,
+                               QFileDialog, QFormLayout, QGridLayout, QHBoxLayout, QLabel,
                                QLineEdit, QListWidget, QMessageBox, QPushButton, QRadioButton,
                                QVBoxLayout, QWidget)
 
 from .. import __version__, locate, win32
 from ..catalog import MODE_TITLES, MODES
 from ..engines import office
-from . import icons, theme
+from . import icons, suitesettings, theme
+from .suitesettings import form, framed, label, note, section, switch
 
 KEY_CHOICES = [('Shift', 'shift'), ('Ctrl', 'ctrl'), ('Alt', 'alt'), ('Off', 'off')]
 MODE_BLURBS = {'convert': 'make a copy in another format',
@@ -21,6 +22,9 @@ MODE_BLURBS = {'convert': 'make a copy in another format',
 
 
 class SettingsDialog(QDialog):
+    PAGES = [('\ue80f', 'General'), ('\ue765', 'Keys'), ('\ue74e', 'Saving'), ('\ue8fd', 'Drop targets'),
+             ('\ue90f', 'Helpers')]
+
     def __init__(self, settings, controller=None, parent=None):
         super().__init__(parent)
         theme.frost(self, backdrop=theme.BACKDROP)
@@ -28,15 +32,16 @@ class SettingsDialog(QDialog):
         self.controller = controller
         self.setWindowTitle('Dropshift settings')
         self.setWindowIcon(icons.app_icon())
-        self.setMinimumWidth(460)
-        theme.restyle(self, lambda: theme.panel_css('QFrame#section', 12))
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 16)
-        layout.setSpacing(12)
+        frame = suitesettings.SettingsFrame(self, icons.render_app_icon(28))
+        pages = iter(self.PAGES)
 
+        # ---------------------------------------------------------------- general
+        layout = frame.add(*next(pages))
         if controller is not None:
             # What the tray menu offers, for when Dropshift is out of the tray.
+            box_frame, box = section('')
             row = QHBoxLayout()
+            row.setSpacing(8)
             pause = QPushButton('Resume Dropshift' if controller.paused else 'Pause Dropshift')
             pause.clicked.connect(lambda: (controller.set_paused(not controller.paused),
                                            pause.setText('Resume Dropshift' if controller.paused
@@ -49,29 +54,46 @@ class SettingsDialog(QDialog):
             quit_button = QPushButton('Quit Dropshift')
             quit_button.clicked.connect(lambda: (self.reject(), controller.quit()))
             row.addWidget(quit_button)
-            layout.addLayout(row)
+            box.addLayout(row)
+            layout.addWidget(box_frame)
 
-        box = _section(layout, 'While dragging a file, press')
-        keys = QFormLayout()
+        box_frame, box = section('Starting and the tray')
+        holder, self._startup = switch('Start Dropshift when I sign in to Windows', '', win32.starts_with_windows())
+        box.addWidget(holder)
+        holder, self._tray = switch('Show Dropshift in the tray',
+                                    "In Hanami's tray icon while Hanami runs, otherwise an icon of its own. "
+                                    'Turned off, open Dropshift from Start or Hanami to get back here.',
+                                    settings.tray_shown)
+        box.addWidget(holder)
+        layout.addWidget(box_frame)
+        layout.addStretch(1)
+
+        # ---------------------------------------------------------------- keys
+        layout = frame.add(*next(pages))
+        box_frame, box = section('While dragging a file, press')
+        rows = form()
         self._combos: dict[str, QComboBox] = {}
         current = settings.keys
         for mode in MODES:
             combo = QComboBox()
-            for label, value in KEY_CHOICES:
-                combo.addItem(label, value)
+            for title, value in KEY_CHOICES:
+                combo.addItem(title, value)
             combo.setCurrentIndex([v for _, v in KEY_CHOICES].index(current[mode]))
             self._combos[mode] = combo
             row = QHBoxLayout()
+            row.setSpacing(12)
             row.addWidget(combo)
-            hint = QLabel(MODE_BLURBS[mode])
-            hint.setEnabled(False)
-            row.addWidget(hint, 1)
-            keys.addRow(f'{MODE_TITLES[mode]}:', row)
-        box.addLayout(keys)
+            row.addWidget(label(MODE_BLURBS[mode], 9, role='dim'), 1)
+            rows.addRow(label(MODE_TITLES[mode]), row)
+        box.addLayout(rows)
+        layout.addWidget(box_frame)
+        layout.addStretch(1)
 
-        box = _section(layout, 'Save what Dropshift makes')
+        # ---------------------------------------------------------------- saving
+        layout = frame.add(*next(pages))
+        box_frame, box = section('Save what Dropshift makes')
         self._beside = QRadioButton('Next to the original')
-        self._elsewhere = QRadioButton('In this folder:')
+        self._elsewhere = QRadioButton('In this folder')
         group = QButtonGroup(self)
         group.addButton(self._beside)
         group.addButton(self._elsewhere)
@@ -85,17 +107,21 @@ class SettingsDialog(QDialog):
         row.addWidget(self._folder, 1)
         row.addWidget(browse)
         box.addLayout(row)
+        layout.addWidget(box_frame)
+        layout.addStretch(1)
 
-        box = _section(layout, 'Your own drop targets')
+        # ---------------------------------------------------------------- drop targets
+        layout = frame.add(*next(pages))
+        box_frame, box = section('Your own drop targets')
         self._custom = [dict(entry) for entry in settings.custom]
-        self._custom_list = QListWidget()
-        self._custom_list.setMaximumHeight(96)
+        self._custom_list = framed(QListWidget())
+        self._custom_list.setMaximumHeight(160)
         self._custom_list.itemDoubleClicked.connect(lambda _: self._edit_custom())
         box.addWidget(self._custom_list)
-        self._custom_none = QLabel('None yet. Add one to drop files on a command of your own.')
-        self._custom_none.setEnabled(False)
+        self._custom_none = note('None yet. Add one to drop files on a command of your own.')
         box.addWidget(self._custom_none)
         row = QHBoxLayout()
+        row.setSpacing(8)
         self._custom_buttons = []
         for text, act in (('Add…', self._add_custom), ('Change…', self._edit_custom), ('Remove', self._remove_custom)):
             button = QPushButton(text)
@@ -105,33 +131,25 @@ class SettingsDialog(QDialog):
         row.addStretch(1)
         box.addLayout(row)
         self._show_custom()
+        layout.addWidget(box_frame)
+        layout.addStretch(1)
 
-        box = _section(layout, 'Starting and the tray')
-        self._startup = QCheckBox('Start Dropshift when I sign in to Windows')
-        self._startup.setChecked(win32.starts_with_windows())
-        box.addWidget(self._startup)
-        self._tray = QCheckBox('Show Dropshift in the tray')
-        self._tray.setChecked(settings.tray_shown)
-        box.addWidget(self._tray)
-        tray_note = QLabel("In Hanami's tray icon while Hanami runs, otherwise an icon of its own. "
-                           'Turned off, open Dropshift from Start or Hanami to get back here.')
-        tray_note.setWordWrap(True)
-        tray_note.setEnabled(False)
-        box.addWidget(tray_note)
-
-        box = _section(layout, 'Helpers found on this PC')
+        # ---------------------------------------------------------------- helpers
+        layout = frame.add(*next(pages))
+        box_frame, box = section('Found on this PC')
         box.addWidget(_status_grid())
+        layout.addWidget(box_frame)
+        layout.addStretch(1)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.button(QDialogButtonBox.Ok).setProperty('role', 'primary')
         buttons.accepted.connect(self._save)
         buttons.rejected.connect(self.reject)
-        about = QLabel(f'Dropshift {__version__}')
-        about.setEnabled(False)
         bottom = QHBoxLayout()
-        bottom.addWidget(about)
+        bottom.addWidget(label(f'Dropshift {__version__}', 9, role='dim'))
         bottom.addStretch(1)
         bottom.addWidget(buttons)
-        layout.addLayout(bottom)
+        frame.footer(bottom)
 
     def _browse(self):
         folder = QFileDialog.getExistingDirectory(self, 'Save in', self._folder.text())
@@ -239,26 +257,6 @@ class CustomDialog(QDialog):
         self.accept()
 
 
-def _heading(text: str) -> QLabel:
-    label = QLabel(text)
-    font = label.font()
-    font.setWeight(QFont.DemiBold)
-    label.setFont(font)
-    return label
-
-
-def _section(layout: QVBoxLayout, title: str) -> QVBoxLayout:
-    """A framed group of settings under its heading, added to layout: its own layout, to fill."""
-    frame = QFrame()
-    frame.setObjectName('section')
-    box = QVBoxLayout(frame)
-    box.setContentsMargins(16, 12, 16, 16)
-    box.setSpacing(8)
-    box.addWidget(_heading(title))
-    layout.addWidget(frame)
-    return box
-
-
 def _status_grid() -> QWidget:
     rows = [('FFmpeg', locate.ffmpeg() is not None, 'video, audio and subtitles'),
             ('Microsoft Word', office.available('Word'), 'documents, PDF to Word'),
@@ -268,14 +266,15 @@ def _status_grid() -> QWidget:
     widget = QWidget()
     grid = QGridLayout(widget)
     grid.setContentsMargins(0, 0, 0, 0)
+    grid.setHorizontalSpacing(12)
+    grid.setVerticalSpacing(6)
     for row, (name, found, what) in enumerate(rows):
-        mark = QLabel('✓' if found else '–')
-        mark.setStyleSheet(f'color: {theme.ink() if found else "#999"}; font-weight: 600;')
+        mark = label('✓' if found else '–', 9.5, QFont.DemiBold, role='' if found else 'dim')
+        if found:
+            mark.setStyleSheet(f'color: {theme.ink()};')
         grid.addWidget(mark, row, 0)
-        grid.addWidget(QLabel(name), row, 1)
-        note = QLabel(what if found else f'not found - no {what}')
-        note.setEnabled(False)
-        grid.addWidget(note, row, 2)
+        grid.addWidget(label(name), row, 1)
+        grid.addWidget(label(what if found else f'Not found: no {what}', 9, role='dim'), row, 2)
     grid.setColumnStretch(2, 1)
     return widget
 
