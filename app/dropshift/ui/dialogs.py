@@ -5,7 +5,7 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
-                               QFileDialog, QFormLayout, QGridLayout, QHBoxLayout, QLabel,
+                               QFileDialog, QFormLayout, QFrame, QGridLayout, QHBoxLayout, QLabel,
                                QLineEdit, QListWidget, QMessageBox, QPushButton, QRadioButton,
                                QVBoxLayout, QWidget)
 
@@ -29,7 +29,10 @@ class SettingsDialog(QDialog):
         self.setWindowTitle('Dropshift settings')
         self.setWindowIcon(icons.app_icon())
         self.setMinimumWidth(460)
+        theme.restyle(self, lambda: theme.panel_css('QFrame#section', 12))
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 16)
+        layout.setSpacing(12)
 
         if controller is not None:
             # What the tray menu offers, for when Dropshift is out of the tray.
@@ -47,9 +50,8 @@ class SettingsDialog(QDialog):
             quit_button.clicked.connect(lambda: (self.reject(), controller.quit()))
             row.addWidget(quit_button)
             layout.addLayout(row)
-            layout.addSpacing(8)
 
-        layout.addWidget(_heading('While dragging a file, press'))
+        box = _section(layout, 'While dragging a file, press')
         keys = QFormLayout()
         self._combos: dict[str, QComboBox] = {}
         current = settings.keys
@@ -65,10 +67,9 @@ class SettingsDialog(QDialog):
             hint.setEnabled(False)
             row.addWidget(hint, 1)
             keys.addRow(f'{MODE_TITLES[mode]}:', row)
-        layout.addLayout(keys)
+        box.addLayout(keys)
 
-        layout.addSpacing(8)
-        layout.addWidget(_heading('Save what Dropshift makes'))
+        box = _section(layout, 'Save what Dropshift makes')
         self._beside = QRadioButton('Next to the original')
         self._elsewhere = QRadioButton('In this folder:')
         group = QButtonGroup(self)
@@ -78,45 +79,48 @@ class SettingsDialog(QDialog):
         browse = QPushButton('Browse…')
         browse.clicked.connect(self._browse)
         (self._elsewhere if settings.output_folder else self._beside).setChecked(True)
-        layout.addWidget(self._beside)
+        box.addWidget(self._beside)
         row = QHBoxLayout()
         row.addWidget(self._elsewhere)
         row.addWidget(self._folder, 1)
         row.addWidget(browse)
-        layout.addLayout(row)
+        box.addLayout(row)
 
-        layout.addSpacing(8)
-        layout.addWidget(_heading('Your own drop targets'))
+        box = _section(layout, 'Your own drop targets')
         self._custom = [dict(entry) for entry in settings.custom]
         self._custom_list = QListWidget()
         self._custom_list.setMaximumHeight(96)
         self._custom_list.itemDoubleClicked.connect(lambda _: self._edit_custom())
-        layout.addWidget(self._custom_list)
+        box.addWidget(self._custom_list)
+        self._custom_none = QLabel('None yet. Add one to drop files on a command of your own.')
+        self._custom_none.setEnabled(False)
+        box.addWidget(self._custom_none)
         row = QHBoxLayout()
+        self._custom_buttons = []
         for text, act in (('Add…', self._add_custom), ('Change…', self._edit_custom), ('Remove', self._remove_custom)):
             button = QPushButton(text)
             button.clicked.connect(act)
             row.addWidget(button)
+            self._custom_buttons.append(button)
         row.addStretch(1)
-        layout.addLayout(row)
+        box.addLayout(row)
         self._show_custom()
 
-        layout.addSpacing(8)
+        box = _section(layout, 'Starting and the tray')
         self._startup = QCheckBox('Start Dropshift when I sign in to Windows')
         self._startup.setChecked(win32.starts_with_windows())
-        layout.addWidget(self._startup)
+        box.addWidget(self._startup)
         self._tray = QCheckBox('Show Dropshift in the tray')
         self._tray.setChecked(settings.tray_shown)
-        layout.addWidget(self._tray)
-        tray_note = QLabel("In Hanami's cherry blossom while Hanami runs, otherwise an icon of its own. "
-                           'Turned off, open Dropshift again - from Start or Hanami - to come back here.')
+        box.addWidget(self._tray)
+        tray_note = QLabel("In Hanami's tray icon while Hanami runs, otherwise an icon of its own. "
+                           'Turned off, open Dropshift from Start or Hanami to get back here.')
         tray_note.setWordWrap(True)
         tray_note.setEnabled(False)
-        layout.addWidget(tray_note)
+        box.addWidget(tray_note)
 
-        layout.addSpacing(8)
-        layout.addWidget(_heading('Helpers found on this PC'))
-        layout.addWidget(_status_grid())
+        box = _section(layout, 'Helpers found on this PC')
+        box.addWidget(_status_grid())
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.accepted.connect(self._save)
@@ -136,6 +140,10 @@ class SettingsDialog(QDialog):
             self._elsewhere.setChecked(True)
 
     def _show_custom(self, select: int = -1) -> None:
+        self._custom_list.setVisible(bool(self._custom))
+        self._custom_none.setVisible(not self._custom)
+        for button in self._custom_buttons[1:]:         # Change and Remove: only with something to change
+            button.setVisible(bool(self._custom))
         self._custom_list.clear()
         for entry in self._custom:
             self._custom_list.addItem(f"{entry['name']}  ·  {MODE_TITLES[entry.get('mode', 'tools')]}")
@@ -237,6 +245,18 @@ def _heading(text: str) -> QLabel:
     font.setWeight(QFont.DemiBold)
     label.setFont(font)
     return label
+
+
+def _section(layout: QVBoxLayout, title: str) -> QVBoxLayout:
+    """A framed group of settings under its heading, added to layout: its own layout, to fill."""
+    frame = QFrame()
+    frame.setObjectName('section')
+    box = QVBoxLayout(frame)
+    box.setContentsMargins(16, 12, 16, 16)
+    box.setSpacing(8)
+    box.addWidget(_heading(title))
+    layout.addWidget(frame)
+    return box
 
 
 def _status_grid() -> QWidget:
