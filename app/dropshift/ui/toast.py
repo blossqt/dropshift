@@ -4,22 +4,22 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QRectF, Qt, QTimer, Signal
+from PySide6.QtCore import QPoint, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import QFont, QFontMetrics, QGuiApplication, QPainter
 from PySide6.QtWidgets import QWidget
 
 from .. import win32
-from . import icons, theme
+from . import icons, suitesettings, theme
 
 SHADOW = 0 if theme.glass_on() else 14       # on glass, Windows draws the shadow
 WIDTH = 330
 HEIGHT = 74
-SPACING = 8
 LINGER = 6000       # ms a finished toast stays up (not counting while hovered)
 
 
 class Toast(QWidget):
     closed = Signal(object)
+    hovered = Signal(bool)          # the pointer came onto it (True) or left it
 
     def __init__(self, title: str, detail: str = ''):
         super().__init__(None, Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint
@@ -34,6 +34,7 @@ class Toast(QWidget):
         self.error = False
         self.outputs: list[Path] = []
         self._hover = ''
+        self.depth = 0              # in the stack: 0 in front, or how many are in front of it, folded
         self._timer = QTimer(self)
         self._timer.setSingleShot(True)
         self._timer.timeout.connect(self.close_toast)
@@ -74,10 +75,12 @@ class Toast(QWidget):
 
     def enterEvent(self, event):
         self._timer.stop()
+        self.hovered.emit(True)
 
     def leaveEvent(self, event):
         self._hover = ''
         self.update()
+        self.hovered.emit(False)
         if self.fraction is None:
             self._timer.start(LINGER // 2)
 
@@ -104,7 +107,7 @@ class Toast(QWidget):
         c = theme.colors()
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
-        card = self._card
+        card = suitesettings.toast_card(self._card, self.depth)
         if theme.glass_on():
             theme.paint_glass(p, card)
         else:
@@ -112,6 +115,9 @@ class Toast(QWidget):
             p.setPen(c.border)
             p.setBrush(c.card)
             p.drawRoundedRect(card.adjusted(0.5, 0.5, -0.5, -0.5), 12, 12)
+        if self.depth:                  # folded behind the one in front: only its edge shows
+            p.end()
+            return
 
         p.drawPixmap(int(card.left() + 14), int(card.top() + 14), icons.render_app_icon(20))
         left, width = card.left() + 44, card.width() - 44 - 40
@@ -154,10 +160,16 @@ class ToastStack:
 
     def __init__(self):
         self._toasts: list[Toast] = []
+        self._spread = False
+        self._fold = QTimer()           # the pointer gone from all of them: folded again, a moment later
+        self._fold.setSingleShot(True)
+        self._fold.setInterval(200)
+        self._fold.timeout.connect(lambda: self._spread_out(False))
 
     def show(self, title: str, detail: str = '') -> Toast:
         toast = Toast(title, detail)
         toast.closed.connect(self._closed)
+        toast.hovered.connect(self._hovered)
         self._toasts.append(toast)
         self._reflow()
         toast.show()
@@ -168,9 +180,18 @@ class ToastStack:
             self._toasts.remove(toast)
         self._reflow()
 
+    def _hovered(self, on: bool) -> None:
+        if on:
+            self._fold.stop()
+            self._spread_out(True)
+        else:
+            self._fold.start()
+
+    def _spread_out(self, spread: bool) -> None:
+        if spread != self._spread:
+            self._spread = spread
+            self._reflow()
+
     def _reflow(self) -> None:
         area = QGuiApplication.primaryScreen().availableGeometry()
-        bottom = area.bottom() + SHADOW - 8
-        for toast in reversed(self._toasts):
-            toast.move(area.right() - toast.width() + SHADOW - 8, bottom - toast.height())
-            bottom -= toast.height() - 2 * SHADOW + SPACING
+        suitesettings.stack_toasts(self._toasts, QPoint(area.right() - 8, area.bottom() - 8), SHADOW, self._spread)

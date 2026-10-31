@@ -13,7 +13,7 @@ from .. import __version__, locate, win32
 from ..catalog import MODE_TITLES, MODES
 from ..engines import office
 from . import icons, suitesettings, theme
-from .suitesettings import form, framed, label, note, section, switch
+from .suitesettings import form, framed, label, section, switch
 
 KEY_CHOICES = [('Shift', 'shift'), ('Ctrl', 'ctrl'), ('Alt', 'alt'), ('Off', 'off')]
 MODE_BLURBS = {'convert': 'make a copy in another format',
@@ -118,7 +118,8 @@ class SettingsDialog(QDialog):
         self._custom_list.setMaximumHeight(160)
         self._custom_list.itemDoubleClicked.connect(lambda _: self._edit_custom())
         box.addWidget(self._custom_list)
-        self._custom_none = note('None yet. Add one to drop files on a command of your own.')
+        self._custom_none = suitesettings.Empty('\ue8fd', 'No drop targets yet',
+                                                'Add one to drop files on a command of your own.')
         box.addWidget(self._custom_none)
         row = QHBoxLayout()
         row.setSpacing(8)
