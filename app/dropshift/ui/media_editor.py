@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Callable
 
 from PySide6.QtCore import QObject, QPointF, QRectF, QSizeF, Qt, QUrl, Signal
-from PySide6.QtGui import (QColor, QFont, QImage, QKeySequence, QPainter, QPainterPath, QPen, QPixmap,
+from PySide6.QtGui import (QColor, QImage, QKeySequence, QPainter, QPainterPath, QPen, QPixmap,
                            QShortcut, QTransform)
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PySide6.QtMultimediaWidgets import QGraphicsVideoItem
@@ -390,7 +390,7 @@ class AudioView(QWidget):
             p.fillPath(clip, QColor('#22232b'))
             p.drawPixmap(art.adjusted(44, 44, -44, -44).toRect(), icons.glyph('audio', QColor('#9a9aa6'), 60, 1.4))
         p.setPen(QColor('#ececf1'))
-        p.setFont(theme.font(15, QFont.DemiBold))
+        p.setFont(theme.serif(17))
         text = QRectF(art.right() + 22, art.top() + 30, self.width() - art.right() - 50, 34)
         p.drawText(text, Qt.AlignLeft | Qt.AlignVCenter,
                    p.fontMetrics().elidedText(self.title, Qt.ElideRight, int(text.width())))
