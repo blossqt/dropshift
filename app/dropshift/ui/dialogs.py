@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (QButtonGroup, QComboBox, QDialog, QDialogButtonBox,
                                QFileDialog, QFormLayout, QGridLayout, QHBoxLayout, QLabel,
                                QLineEdit, QListWidget, QMessageBox, QPushButton, QRadioButton,
@@ -270,10 +269,9 @@ def _status_grid() -> QWidget:
     grid.setHorizontalSpacing(12)
     grid.setVerticalSpacing(8)
     for row, (name, found, what) in enumerate(rows):
-        mark = label('✓' if found else '–', BODY, QFont.DemiBold, role='' if found else 'dim')
-        if found:
-            mark.setStyleSheet(f'color: {theme.ink()};')
-        grid.addWidget(mark, row, 0)
+        mark = QLabel()                             # a check, or a dim cross where it is missing
+        mark.setPixmap(icons.glyph('check' if found else 'cross', theme.ink() if found else theme.colors().dim, 16))
+        grid.addWidget(mark, row, 0, Qt.AlignVCenter)
         grid.addWidget(label(name), row, 1)
         grid.addWidget(label(what if found else f'Not found: no {what}', SMALL, role='dim'), row, 2)
     grid.setColumnStretch(2, 1)
