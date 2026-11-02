@@ -292,7 +292,7 @@ class WelcomeDialog(QDialog):
         logo = QLabel()
         logo.setPixmap(icons.render_app_icon(48))
         top.addWidget(logo, 0, Qt.AlignTop)
-        title = suitesettings.titled('Dropshift is running', 'It lives in the tray, by the clock.')
+        title = suitesettings.titled('Dropshift is running', 'It runs in the tray, by the clock.')
         top.addWidget(title, 1)
         layout.addLayout(top)
         layout.addSpacing(6)

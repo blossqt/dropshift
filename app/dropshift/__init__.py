@@ -1,4 +1,4 @@
-"""Dropshift: drag a file, press a key, drop it on what it should become."""
+"""Dropshift: converts, edits and moves files from a menu that opens mid-drag."""
 
-__version__ = "0.1.29"
+__version__ = "0.1.30"
 APP_NAME = "Dropshift"

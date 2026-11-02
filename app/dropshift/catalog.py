@@ -151,7 +151,7 @@ def _build() -> list[Op]:
         add(_convert('image', target, images.convert, hint=hint))
     for target in ('png', 'jpg', 'webp', 'ico', 'pdf'):
         add(_convert('svg', target, images.convert, gui_thread=True,
-                     hint='Save as a PDF, still sharp at any size' if target == 'pdf' else ''))
+                     hint='Save as a vector PDF' if target == 'pdf' else ''))
 
     for target in ('mp4', 'mov', 'webm', 'mkv', 'avi', 'gif'):
         hint = {'gif': 'Make an animated GIF (15 fps, up to 640 px wide)',

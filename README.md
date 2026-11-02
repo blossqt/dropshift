@@ -1,7 +1,9 @@
 # Dropshift
 
-Drag a file, press a key, drop it on what it should become. A Windows take on
-the Mac's Tangerine, and part of the same suite as Homework Hub and Grabbit.
+Dropshift converts, edits and moves files from a menu that opens while you
+drag one: press Shift, Ctrl or Alt mid-drag, then drop the file on a choice.
+Modelled on the Mac's Tangerine, and part of the same suite as Homework Hub
+and Grabbit.
 
 Everything happens on your PC; nothing is uploaded.
 
@@ -42,7 +44,7 @@ be cropped (free, or 16:9, 9:16, 1:1...), rotated and mirrored, and lose their
 sound. Export a video as MP4, WEBM, MOV or GIF at a chosen size and quality,
 or just its sound as MP3, M4A or WAV; audio as MP3, M4A, WAV, FLAC, OGG, OPUS
 or AIFF. A song shows its cover, title and waveform instead of a picture.
-**Fast trim** skips re-encoding when only cutting: done in seconds with no loss,
+**Fast trim** skips re-encoding when only cutting, so quality is unchanged,
 but it cuts at the nearest keyframe. Keys: Space play/pause, ←/→ a frame (a
 tenth of a second for audio), Shift+←/→ a second, Home/End the start and end
 of the selection.
