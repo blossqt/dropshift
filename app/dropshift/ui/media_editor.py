@@ -25,7 +25,7 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QGraphicsObject, QGraphicsS
 
 from ..engines import media
 from ..engines.media import MediaEdit
-from . import icons, theme
+from . import icons, suitesettings, theme
 
 CROPS = [('Off', None), ('Free', 0.0), ('16:9', 16 / 9), ('9:16', 9 / 16), ('1:1', 1.0), ('4:3', 4 / 3),
          ('3:4', 3 / 4)]
@@ -395,7 +395,7 @@ class AudioView(QWidget):
         p.drawText(text, Qt.AlignLeft | Qt.AlignVCenter,
                    p.fontMetrics().elidedText(self.title, Qt.ElideRight, int(text.width())))
         p.setPen(QColor('#9a9aa6'))
-        p.setFont(theme.font(10))
+        p.setFont(theme.font(10.5))
         p.drawText(text.translated(0, 34), Qt.AlignLeft | Qt.AlignVCenter,
                    p.fontMetrics().elidedText(self.subtitle, Qt.ElideRight, int(text.width())))
         if self.note:
@@ -511,7 +511,7 @@ class MediaEditor(QWidget):
         # ------------------------------------------------------------- transport
         self._play = self._tool('play', 'Play / pause (Space)', self.toggle_play)
         self._time = QLabel()
-        self._time.setFont(theme.font(10))
+        self._time.setFont(theme.font(10.5))
         set_start = self._button('Set start  I', lambda: self._set_start(self._player.position()))
         set_end = self._button('Set end  O', lambda: self._set_end(self._player.position()))
         self._selected = QLabel()
@@ -603,7 +603,7 @@ class MediaEditor(QWidget):
         layout.setContentsMargins(0, 0, 0, 12)
         layout.addWidget(preview, 1)
         controls = QVBoxLayout()
-        controls.setContentsMargins(14, 8, 14, 0)
+        controls.setContentsMargins(16, 8, 16, 0)
         controls.addWidget(self._timeline)
         controls.addLayout(transport)
         controls.addSpacing(6)
@@ -619,6 +619,12 @@ class MediaEditor(QWidget):
                 'Escape': self.close}
         for key, action in keys.items():
             QShortcut(QKeySequence(key), self, action)
+        suitesettings.shortcut_sheet(self, 'Dropshift', [
+            ('Playing', [('Space', 'Play or pause'), ('Left', 'A frame back'), ('Right', 'A frame on'),
+                         ('Shift+Left', 'A second back'), ('Shift+Right', 'A second on'),
+                         ('Home', 'The start'), ('End', 'The end')]),
+            ('Cutting', [('I', 'Start here'), ('O', 'End here')]),
+            ('The editor', [('Ctrl+/', 'These shortcuts'), ('Esc', 'Close')])])
 
         self._loaded = _Loaded(self)
         self._loaded.strip.connect(self._got_strip)

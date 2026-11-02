@@ -22,8 +22,8 @@ MODE_BLURBS = {'convert': 'make a copy in another format',
 
 
 class SettingsDialog(QDialog):
-    PAGES = [('\ue80f', 'General'), ('\ue765', 'Keys'), ('\ue74e', 'Saving'), ('\ue8fd', 'Drop targets'),
-             ('\ue90f', 'Helpers')]
+    PAGES = [('gear', 'General'), ('keyboard', 'Keys'), ('save', 'Saving'), ('list', 'Drop targets'),
+             ('wrench', 'Helpers')]
 
     def __init__(self, settings, controller=None, parent=None):
         super().__init__(parent)
@@ -118,7 +118,7 @@ class SettingsDialog(QDialog):
         self._custom_list.setMaximumHeight(160)
         self._custom_list.itemDoubleClicked.connect(lambda _: self._edit_custom())
         box.addWidget(self._custom_list)
-        self._custom_none = suitesettings.Empty('\ue8fd', 'No drop targets yet',
+        self._custom_none = suitesettings.Empty('list', 'No drop targets yet',
                                                 'Add one to drop files on a command of your own.')
         box.addWidget(self._custom_none)
         row = QHBoxLayout()
@@ -292,8 +292,7 @@ class WelcomeDialog(QDialog):
         logo = QLabel()
         logo.setPixmap(icons.render_app_icon(48))
         top.addWidget(logo, 0, Qt.AlignTop)
-        title = QLabel('<b style="font-size:14pt">Dropshift is running</b><br>'
-                       'It lives in the tray, by the clock.')
+        title = suitesettings.titled('Dropshift is running', 'It lives in the tray, by the clock.')
         top.addWidget(title, 1)
         layout.addLayout(top)
         layout.addSpacing(6)
