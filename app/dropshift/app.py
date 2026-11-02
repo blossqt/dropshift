@@ -401,4 +401,4 @@ def main(argv: list[str] | None = None) -> int:
 
     controller = Controller()  # noqa: F841 - lives as long as the app
     app.styleHints().colorSchemeChanged.connect(lambda *_: icons.clear_cache())
-    return app.exec()
+    return theme.leave(app.exec())   # Windows' text readers crashed in Python's own exit (0.1.27)
