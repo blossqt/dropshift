@@ -29,7 +29,15 @@ class Colors(suitetheme.Colors):
 
 
 def colors() -> Colors:
-    base = suitetheme.colors()
-    tab = '#34353f' if is_dark() else '#e6e8f0'
-    return Colors(**vars(base), chip_text=QColor(base.text), hover=QColor(ACCENT), hover_text=QColor(ON_ACCENT),
-                  tab_on=QColor(tab), track=QColor(tab))
+    """Kept for each mode and glass, as suitetheme's are: copy one before changing it."""
+    key = (is_dark(), suitetheme.glass_on())
+    kept = _kept.get(key)
+    if kept is None:
+        base = suitetheme.colors()
+        tab = '#34353f' if key[0] else '#e6e8f0'
+        kept = _kept[key] = Colors(**vars(base), chip_text=QColor(base.text), hover=QColor(ACCENT),
+                                   hover_text=QColor(ON_ACCENT), tab_on=QColor(tab), track=QColor(tab))
+    return kept
+
+
+_kept: dict = {}
