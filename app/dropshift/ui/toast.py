@@ -126,7 +126,7 @@ class Toast(QWidget):
         metrics = QFontMetrics(p.font())
         p.drawText(QRectF(left, card.top() + 10, width, 22), Qt.AlignVCenter,
                    metrics.elidedText(self.title, Qt.ElideMiddle, int(width)))
-        p.setFont(theme.font(8.5))
+        p.setFont(theme.font(9))
         p.setPen(c.dim)
         metrics = QFontMetrics(p.font())
         detail_w = width + 30 if not self.outputs else width - 80
@@ -146,7 +146,7 @@ class Toast(QWidget):
             p.setPen(Qt.NoPen)
             p.setBrush(c.hover if self._hover == 'show' else c.chip)
             p.drawRoundedRect(self._show_rect, 7, 7)
-            p.setFont(theme.font(8.5, QFont.DemiBold))
+            p.setFont(theme.font(9, QFont.DemiBold))
             p.setPen(c.hover_text if self._hover == 'show' else c.text)
             p.drawText(self._show_rect, Qt.AlignCenter, 'Show in folder')
 

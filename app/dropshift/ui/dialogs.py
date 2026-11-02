@@ -13,7 +13,7 @@ from .. import __version__, locate, win32
 from ..catalog import MODE_TITLES, MODES
 from ..engines import office
 from . import icons, suitesettings, theme
-from .suitesettings import form, framed, label, section, switch
+from .suitesettings import BODY, SMALL, form, framed, label, section, switch
 
 KEY_CHOICES = [('Shift', 'shift'), ('Ctrl', 'ctrl'), ('Alt', 'alt'), ('Off', 'off')]
 MODE_BLURBS = {'convert': 'make a copy in another format',
@@ -83,7 +83,7 @@ class SettingsDialog(QDialog):
             row = QHBoxLayout()
             row.setSpacing(12)
             row.addWidget(combo)
-            row.addWidget(label(MODE_BLURBS[mode], 9, role='dim'), 1)
+            row.addWidget(label(MODE_BLURBS[mode], SMALL, role='dim'), 1)
             rows.addRow(label(MODE_TITLES[mode]), row)
         box.addLayout(rows)
         layout.addWidget(box_frame)
@@ -218,11 +218,11 @@ class CustomDialog(QDialog):
         form = QFormLayout()
         self._name = QLineEdit(entry.get('name', ''))
         self._name.setPlaceholderText('Half size with ImageMagick')
-        form.addRow('Name:', self._name)
+        form.addRow('Name', self._name)
         self._command = QLineEdit(entry.get('command', ''))
         self._command.setPlaceholderText('magick "{file}" -resize 50% "{folder}\\{stem} half.{ext}"')
-        form.addRow('Command:', self._command)
-        note = QLabel('{file} is the file’s path, {folder} its folder, {name} its name, {stem} its name without '
+        form.addRow('Command', self._command)
+        note = theme.Label('{file} is the file’s path, {folder} its folder, {name} its name, {stem} its name without '
                       'the extension and {ext} the extension - put them in quotes. {files} is every file, '
                       'each in quotes. With none of these, the file goes on the end.')
         note.setWordWrap(True)
@@ -232,15 +232,15 @@ class CustomDialog(QDialog):
         for mode in ('tools', 'actions'):
             self._mode.addItem(MODE_TITLES[mode], mode)
         self._mode.setCurrentIndex(1 if entry.get('mode') == 'actions' else 0)
-        form.addRow('Shows in:', self._mode)
+        form.addRow('Shows in', self._mode)
         self._exts = QLineEdit(entry.get('exts', ''))
         self._exts.setPlaceholderText('png, jpg - empty for any file')
-        form.addRow('For:', self._exts)
+        form.addRow('For', self._exts)
         self._each = QComboBox()
         self._each.addItem('Once for each file', True)
         self._each.addItem('Once for all of them', False)
         self._each.setCurrentIndex(0 if entry.get('each', True) else 1)
-        form.addRow('Runs:', self._each)
+        form.addRow('Runs', self._each)
         layout.addLayout(form)
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.accepted.connect(self._ok)
@@ -268,14 +268,14 @@ def _status_grid() -> QWidget:
     grid = QGridLayout(widget)
     grid.setContentsMargins(0, 0, 0, 0)
     grid.setHorizontalSpacing(12)
-    grid.setVerticalSpacing(6)
+    grid.setVerticalSpacing(8)
     for row, (name, found, what) in enumerate(rows):
-        mark = label('✓' if found else '–', 9.5, QFont.DemiBold, role='' if found else 'dim')
+        mark = label('✓' if found else '–', BODY, QFont.DemiBold, role='' if found else 'dim')
         if found:
             mark.setStyleSheet(f'color: {theme.ink()};')
         grid.addWidget(mark, row, 0)
         grid.addWidget(label(name), row, 1)
-        grid.addWidget(label(what if found else f'Not found: no {what}', 9, role='dim'), row, 2)
+        grid.addWidget(label(what if found else f'Not found: no {what}', SMALL, role='dim'), row, 2)
     grid.setColumnStretch(2, 1)
     return widget
 
@@ -289,19 +289,19 @@ class WelcomeDialog(QDialog):
         self.setMinimumWidth(420)
         layout = QVBoxLayout(self)
         top = QHBoxLayout()
-        logo = QLabel()
+        logo = theme.Label()
         logo.setPixmap(icons.render_app_icon(48))
         top.addWidget(logo, 0, Qt.AlignTop)
         title = suitesettings.titled('Dropshift is running', 'It runs in the tray, by the clock.')
         top.addWidget(title, 1)
         layout.addLayout(top)
-        layout.addSpacing(6)
+        layout.addSpacing(16)
         steps = ['<b>1.</b> Start dragging any file, from Explorer, the desktop or a download.']
         lines = [f'<b>{win32.KEY_LABELS[keys[m]]}</b> to {MODE_BLURBS[m].rstrip(".")}'
                  for m in MODES if keys.get(m, 'off') != 'off']
         steps.append('<b>2.</b> While it is still held, press ' + '; '.join(lines) + '.')
         steps.append('<b>3.</b> Drop it on what you want. The result is saved next to the original.')
-        text = QLabel('<br><br>'.join(steps))
+        text = theme.Label('<br><br>'.join(steps))
         text.setWordWrap(True)
         text.setTextFormat(Qt.RichText)
         layout.addWidget(text)

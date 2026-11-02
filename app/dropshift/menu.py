@@ -419,7 +419,7 @@ class DropMenu(QWidget):
         metrics = QFontMetrics(p.font())
         p.drawText(QRectF(left, badge.top() - 1, width, 20), Qt.AlignLeft | Qt.AlignVCenter,
                    metrics.elidedText(title, Qt.ElideMiddle, int(width)))
-        p.setFont(theme.font(8.5))
+        p.setFont(theme.font(9))
         p.setPen(c.dim)
         metrics = QFontMetrics(p.font())
         p.drawText(QRectF(left, badge.top() + 18, width, 18), Qt.AlignLeft | Qt.AlignVCenter,
@@ -434,7 +434,7 @@ class DropMenu(QWidget):
         name = MODE_TITLES[item.mode]
         key = win32.KEY_LABELS.get(self.keys.get(item.mode, 'off'), '')
         name_font = theme.font(9, QFont.DemiBold if on else QFont.Normal)
-        key_font = theme.font(7.5)
+        key_font = theme.font(theme.TYPE['tiny'])
         name_w = QFontMetrics(name_font).horizontalAdvance(name)
         key_w = QFontMetrics(key_font).horizontalAdvance(key) + 10 if key else 0
         x = item.rect.center().x() - (name_w + (key_w + 5 if key else 0)) / 2
@@ -468,7 +468,7 @@ class DropMenu(QWidget):
         r = item.rect
         icon = QRectF(r.center().x() - 11, r.top() + 11, 22, 22)
         p.drawPixmap(icon.toRect(), icons.glyph(item.op.icon, ink, 22))
-        p.setFont(theme.font(8.5))
+        p.setFont(theme.font(9))
         p.setPen(ink)
         metrics = QFontMetrics(p.font())
         p.drawText(QRectF(r.left() + 4, r.top() + 38, r.width() - 8, 20), Qt.AlignCenter,
@@ -484,7 +484,7 @@ class DropMenu(QWidget):
                 text += f'  ({len(skipped)} skipped)'
         else:
             text = 'Drop on a choice · Esc to cancel'
-        p.setFont(theme.font(8.5))
+        p.setFont(theme.font(9))
         p.setPen(c.dim)
         metrics = QFontMetrics(p.font())
         p.drawText(rect, Qt.AlignLeft | Qt.AlignVCenter,

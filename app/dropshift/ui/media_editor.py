@@ -510,11 +510,11 @@ class MediaEditor(QWidget):
 
         # ------------------------------------------------------------- transport
         self._play = self._tool('play', 'Play / pause (Space)', self.toggle_play)
-        self._time = QLabel()
+        self._time = theme.Label()
         self._time.setFont(theme.font(10.5))
         set_start = self._button('Set start  I', lambda: self._set_start(self._player.position()))
         set_end = self._button('Set end  O', lambda: self._set_end(self._player.position()))
-        self._selected = QLabel()
+        self._selected = theme.Label()
         self._selected.setEnabled(False)
         transport = QHBoxLayout()
         for widget in (self._play, self._time):
@@ -535,7 +535,7 @@ class MediaEditor(QWidget):
             self._flip = self._tool('flip', 'Mirror left to right', self._apply_transform)
             self._flip.setCheckable(True)
             self._picture_controls = [self._crop_choice, rotate_left, rotate_right, self._flip]
-            for widget in (QLabel('Crop'), self._crop_choice, self._gap(), QLabel('Rotate'), rotate_left,
+            for widget in (theme.Label('Crop'), self._crop_choice, self._gap(), theme.Label('Rotate'), rotate_left,
                            rotate_right, self._flip, self._gap()):
                 changes.addWidget(widget)
         self._speed = self._combo([f'{s:g}×' for s in SPEEDS], self._speed_changed)
@@ -549,14 +549,14 @@ class MediaEditor(QWidget):
         self._mute.setFocusPolicy(Qt.NoFocus)
         self._mute.toggled.connect(self._mute_changed)
         self._sound_controls = [self._volume]
-        changes.addWidget(QLabel('Speed'))
+        changes.addWidget(theme.Label('Speed'))
         changes.addWidget(self._speed)
         if self.has_audio:
             changes.addWidget(self._gap())
-            changes.addWidget(QLabel('Volume'))
+            changes.addWidget(theme.Label('Volume'))
             changes.addWidget(self._volume)
         changes.addWidget(self._gap())
-        for widget in (QLabel('Fade in'), self._fade_in, QLabel('out'), self._fade_out):
+        for widget in (theme.Label('Fade in'), self._fade_in, theme.Label('out'), self._fade_out):
             changes.addWidget(widget)
         if self.has_video and self.has_audio:
             changes.addWidget(self._gap())
@@ -580,7 +580,7 @@ class MediaEditor(QWidget):
                               'nothing, but cuts at the nearest keyframe, so the start may come a\n'
                               'moment early. Only for cutting (and removing the sound).')
         self._fast.toggled.connect(self._refresh)
-        self._summary = QLabel()
+        self._summary = theme.Label()
         self._summary.setEnabled(False)
         self._go = QPushButton('Export')
         self._go.setFocusPolicy(Qt.NoFocus)
@@ -592,21 +592,21 @@ class MediaEditor(QWidget):
                                'QPushButton:disabled { background: #555a70; color: #c9c9d2; }')
         self._go.clicked.connect(self._export_now)
         output = QHBoxLayout()
-        for widget in (QLabel('Save as'), self._format, self._size, self._quality, self._gap(), self._fast):
+        for widget in (theme.Label('Save as'), self._format, self._size, self._quality, self._gap(), self._fast):
             output.addWidget(widget)
         output.addStretch(1)
         output.addWidget(self._summary)
-        output.addSpacing(10)
+        output.addSpacing(12)
         output.addWidget(self._go)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 12)
+        layout.setContentsMargins(0, 0, 0, 16)
         layout.addWidget(preview, 1)
         controls = QVBoxLayout()
-        controls.setContentsMargins(16, 8, 16, 0)
+        controls.setContentsMargins(16, 12, 16, 0)
         controls.addWidget(self._timeline)
         controls.addLayout(transport)
-        controls.addSpacing(6)
+        controls.addSpacing(8)
         controls.addLayout(changes)
         controls.addLayout(output)
         layout.addLayout(controls)

@@ -37,9 +37,9 @@ class InfoWindow(QWidget):
 
         layout = QVBoxLayout(self)
         top = QHBoxLayout()
-        self._icon = QLabel()
+        self._icon = theme.Label()
         top.addWidget(self._icon)
-        self._title = QLabel()
+        self._title = theme.Label()
         self._title.setFont(theme.serif(self._title.font().pointSizeF() * 1.5))
         self._title.setTextInteractionFlags(Qt.TextSelectableByMouse)
         top.addWidget(self._title, 1)

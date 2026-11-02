@@ -158,7 +158,7 @@ class FloatShelf(QWidget):
             p.drawRoundedRect(card.adjusted(0.5, 0.5, -0.5, -0.5), 12, 12)
 
         p.drawPixmap(int(card.left() + 10), int(card.top() + 9), icons.glyph('pin', c.dim, 16))
-        p.setFont(theme.font(8.5, QFont.DemiBold))
+        p.setFont(theme.font(9, QFont.DemiBold))
         p.setPen(c.dim)
         count = len(self.paths)
         p.drawText(QRectF(card.left() + 32, card.top(), card.width() - 70, HEADER_H),
