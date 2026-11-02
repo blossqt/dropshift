@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from PySide6.QtCore import QPoint, QPointF, QRectF, Qt, QTimer, QVariantAnimation, Signal
-from PySide6.QtGui import QFont, QFontMetrics, QGuiApplication, QPainter
+from PySide6.QtGui import QFont, QFontMetrics, QGuiApplication, QPainter, QPainterPath, QPixmap
 from PySide6.QtWidgets import QWidget
 
 from . import catalog, web, win32
@@ -140,6 +140,8 @@ class DropMenu(QWidget):
         self._hover: _Item | None = None
         self._anchor = QPoint()
         self._card = QRectF()
+        self._backdrop: QPixmap | None = None
+        self._backdrop_key = None
         self._opening = 0       # counts openings, so a stale timer can't close a newer menu
 
         self._fade = QVariantAnimation(self)
@@ -343,6 +345,29 @@ class DropMenu(QWidget):
 
     # ------------------------------------------------------------------ painting
 
+    def _paint_backdrop(self, p: QPainter) -> None:
+        """The windows' blossom photo, as faint as theirs, over the card and under its contents.
+        Scaled once per card size: the menu repaints on every hover."""
+        dpr = self.devicePixelRatioF()
+        key = (self._card.width(), self._card.height(), dpr)
+        if self._backdrop_key != key:
+            source = QPixmap(theme.BACKDROP)
+            if source.isNull():
+                return
+            width, height = round(self._card.width() * dpr), round(self._card.height() * dpr)
+            scaled = source.scaled(width, height, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+            self._backdrop = scaled.copy((scaled.width() - width) // 2, (scaled.height() - height) // 2,
+                                         width, height)
+            self._backdrop.setDevicePixelRatio(dpr)
+            self._backdrop_key = key
+        path = QPainterPath()
+        path.addRoundedRect(self._card, RADIUS, RADIUS)
+        p.save()
+        p.setClipPath(path)
+        p.setOpacity(theme.BACKDROP_OPACITY)
+        p.drawPixmap(self._card.topLeft(), self._backdrop)
+        p.restore()
+
     def paintEvent(self, event):
         c = theme.colors()
         p = QPainter(self)
@@ -355,6 +380,7 @@ class DropMenu(QWidget):
             p.setPen(c.border)
             p.setBrush(c.card)
             p.drawRoundedRect(self._card.adjusted(0.5, 0.5, -0.5, -0.5), RADIUS, RADIUS)
+        self._paint_backdrop(p)
 
         self._paint_header(p, c)
         for item in self._items:
