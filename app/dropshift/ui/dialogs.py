@@ -60,7 +60,6 @@ class SettingsDialog(QDialog):
         holder, self._startup = switch('Start Dropshift when I sign in to Windows', '', win32.starts_with_windows())
         box.addWidget(holder)
         holder, self._tray = switch('Show Dropshift in the tray',
-                                    "In Hanami's tray icon while Hanami runs, otherwise an icon of its own. "
                                     'Turned off, open Dropshift from Start or Hanami to get back here.',
                                     settings.tray_shown)
         box.addWidget(holder)
