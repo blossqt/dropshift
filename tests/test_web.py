@@ -225,7 +225,7 @@ class WebDragTests(unittest.TestCase):
         paths = web.from_mime(browser_drag(f'{self.base}/checked', 'Crystalline Pink Blossom.url'))
         job = Job(catalog.WEB_OPS['actions'][0], paths, [], str(self.out))
         error = job.execute()
-        self.assertIn('checks for robots', error)
+        self.assertIn('requires a browser check', error)
         self.assertIn('Drag the picture itself instead', error)
         self.assertEqual(list(self.out.iterdir()), [], 'the check is not saved as the page')
 

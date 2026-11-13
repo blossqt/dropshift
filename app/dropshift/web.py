@@ -274,8 +274,8 @@ def _robot_check(found: Source) -> str:
     site = urllib.parse.urlsplit(found.url).hostname or 'That site'
     site = site[4:] if site.startswith('www.') else site
     if found.link:
-        return f"{site} checks for robots before it shows this page, so it can't be downloaded. Drag the picture itself instead."
-    return f"{site} checks for robots before it gives out this file, so it can't be downloaded."
+        return f'{site} requires a browser check before it shows this page. Drag the picture itself instead.'
+    return f'{site} requires a browser check before it gives out this file.'
 
 
 def renamed_for(path: Path, content_type: str, link: bool, offered: str = '') -> Path:
