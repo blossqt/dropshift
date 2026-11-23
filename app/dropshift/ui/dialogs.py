@@ -60,7 +60,7 @@ class SettingsDialog(QDialog):
         holder, self._startup = switch('Start Dropshift when I sign in to Windows', '', win32.starts_with_windows())
         box.addWidget(holder)
         holder, self._tray = switch('Show Dropshift in the tray',
-                                    'Turned off, open Dropshift from Start or Hanami to get back here.',
+                                    'When off, Dropshift opens from Start or from Hanami.',
                                     settings.tray_shown)
         box.addWidget(holder)
         layout.addWidget(box_frame)
@@ -89,7 +89,7 @@ class SettingsDialog(QDialog):
 
         # ---------------------------------------------------------------- saving
         layout = frame.add(*next(pages))
-        box_frame, box = section('Save what Dropshift makes')
+        box_frame, box = section('Output location')
         self._beside = QRadioButton('Next to the original')
         self._elsewhere = QRadioButton('In this folder')
         group = QButtonGroup(self)
@@ -110,14 +110,14 @@ class SettingsDialog(QDialog):
 
         # ---------------------------------------------------------------- drop targets
         layout = frame.add(*next(pages))
-        box_frame, box = section('Your own drop targets')
+        box_frame, box = section('Custom drop targets')
         self._custom = [dict(entry) for entry in settings.custom]
         self._custom_list = framed(QListWidget())
         self._custom_list.setMaximumHeight(160)
         self._custom_list.itemDoubleClicked.connect(lambda _: self._edit_custom())
         box.addWidget(self._custom_list)
-        self._custom_none = suitesettings.Empty('list', 'No drop targets yet',
-                                                'Add one to drop files on a command of your own.')
+        self._custom_none = suitesettings.Empty('list', 'No custom drop targets',
+                                                'Add a command to drop files on.')
         box.addWidget(self._custom_none)
         row = QHBoxLayout()
         row.setSpacing(8)

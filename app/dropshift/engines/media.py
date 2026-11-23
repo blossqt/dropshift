@@ -131,7 +131,7 @@ def convert_video(job: Job, src: Path, target: str) -> None:
                         '[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4',
                  '-loop', '0']
     else:
-        raise UserError(f"Can't make {target.upper()} from video")
+        raise UserError(f"Cannot make {target.upper()} from video")
     args.append(out)
     try:
         run(job, args, duration(info))

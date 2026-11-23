@@ -764,7 +764,7 @@ class MediaEditor(QWidget):
             self._player.pause()
 
     def _error(self, error, text: str) -> None:
-        message = f"Can't play this here ({text or error}), but cutting and exporting still work."
+        message = f'Playback is not available ({text or error}). Trimming and exporting still work.'
         if self.has_video:
             self._message.setText(message.replace(', but', ',\nbut'))
             self._message.setPos(20, 20)

@@ -54,13 +54,13 @@ def open_image(src: Path) -> Image.Image:
 def _open_with_ffmpeg(src: Path) -> Image.Image:
     ffmpeg = locate.ffmpeg()
     if not ffmpeg:
-        raise UserError(f"Can't read {src.name} as a picture")
+        raise UserError(f"Cannot read {src.name} as a picture")
     with tempfile.TemporaryDirectory(prefix='dropshift-') as tmp:
         png = Path(tmp) / 'frame.png'
         result = win32.run_hidden([ffmpeg, '-hide_banner', '-loglevel', 'error', '-nostdin', '-y',
                                    '-i', src, '-frames:v', '1', png], capture_output=True)
         if result.returncode or not png.exists():
-            raise UserError(f"Can't read {src.name} as a picture")
+            raise UserError(f"Cannot read {src.name} as a picture")
         image = Image.open(io.BytesIO(png.read_bytes()))
         image.load()
         return image
@@ -73,7 +73,7 @@ def render_svg(src: Path, longest: int = 2048) -> Image.Image:
 
     renderer = QSvgRenderer(str(src))
     if not renderer.isValid():
-        raise UserError(f"Can't read {src.name} as an SVG drawing")
+        raise UserError(f"Cannot read {src.name} as an SVG drawing")
     size = renderer.defaultSize()
     if size.isEmpty():
         size = QSize(1024, 1024)
@@ -101,7 +101,7 @@ def svg_to_pdf(src: Path, out: Path) -> None:
 
     renderer = QSvgRenderer(str(src))
     if not renderer.isValid():
-        raise UserError(f"Can't read {src.name} as an SVG drawing")
+        raise UserError(f"Cannot read {src.name} as an SVG drawing")
     size = renderer.defaultSize()
     points = QSizeF(max(size.width(), 1) * 0.75, max(size.height(), 1) * 0.75)
     writer = QPdfWriter(str(out))
@@ -261,7 +261,7 @@ def compress(job: Job, src: Path) -> None:
         out = job.output_for(src, target, 'compressed')
         save(image, out, target, quality=quality, icc=icc)
     elif ext == 'gif' or getattr(image, 'is_animated', False):
-        raise UserError(f"{src.name}: animated pictures can't be compressed here yet")
+        raise UserError(f"{src.name}: animated pictures cannot be compressed")
     else:
         # PNG and friends: down to 256 colours, which is what makes PNGs small;
         # a picture with no transparency that is still big becomes a JPG.

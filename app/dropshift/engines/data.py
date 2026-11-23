@@ -35,7 +35,7 @@ def json_to_csv(job: Job, src: Path, target: str = 'csv') -> None:
     try:
         data = json.loads(_read_text(src))
     except json.JSONDecodeError as error:
-        raise UserError(f"{src.name} isn't valid JSON (line {error.lineno})") from None
+        raise UserError(f"{src.name} is not valid JSON (line {error.lineno})") from None
     if isinstance(data, dict):
         # {"items": [...]} is common; otherwise the object is one row.
         lists = [v for v in data.values() if isinstance(v, list) and v and isinstance(v[0], dict)]

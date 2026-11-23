@@ -32,6 +32,7 @@ HEADER_H = 56
 TABS_H = 34
 FOOTER_H = 32
 GROUP_H = 24
+TAB_DWELL = 250     # ms the pointer rests on another mode's tab, mid-drag, before the menu turns to it
 CHIP_H = 38
 CHIP_COLS = 4
 TILE_H = 66
@@ -150,6 +151,13 @@ class DropMenu(QWidget):
         self._probe = QTimer(self)
         self._probe.setSingleShot(True)
         self._probe.timeout.connect(self._probe_expired)
+        # Another mode's tab turns the menu to it once the pointer rests there (TAB_DWELL), not as it
+        # passes: the menu opens with the pointer at its top left, so the way down to the first
+        # column of Tools or Actions crossed the Convert tab, and a drop there converted the file.
+        self._tab_wait = QTimer(self)
+        self._tab_wait.setSingleShot(True)
+        self._tab_wait.timeout.connect(self._tab_rested)
+        self._tab_waiting: str | None = None
 
     # ------------------------------------------------------------------ opening and closing
 
@@ -173,6 +181,8 @@ class DropMenu(QWidget):
 
     def dismiss(self) -> None:
         self._probe.stop()
+        self._tab_wait.stop()
+        self._tab_waiting = None
         self._fade.stop()
         self.hide()
         self._paths, self._known, self._hover = [], False, None
@@ -288,12 +298,21 @@ class DropMenu(QWidget):
     def _hover_at(self, pos: QPointF) -> _Item | None:
         item = self._item_at(pos)
         if item and item.kind == 'tab' and item.mode != self._mode:
-            self.set_mode(item.mode)
-            item = self._item_at(pos)
+            if self._tab_waiting != item.mode:
+                self._tab_waiting = item.mode
+                self._tab_wait.start(TAB_DWELL)
+        else:
+            self._tab_wait.stop()
+            self._tab_waiting = None
         if item is not self._hover:
             self._hover = item
             self.update()
         return item
+
+    def _tab_rested(self) -> None:
+        mode, self._tab_waiting = self._tab_waiting, None
+        if mode is not None and self.isVisible():
+            self.set_mode(mode)
 
     def dragEnterEvent(self, event):
         # Files from Explorer; failing those, a picture or link from a web page.
@@ -386,10 +405,12 @@ class DropMenu(QWidget):
         for item in self._items:
             if item.kind == 'tab':
                 self._paint_tab(p, c, item)
-        p.setFont(theme.font(8, QFont.DemiBold))
+        # Group names as the suite's section headings are: sentence case, 9 pt (small capitals at 8 pt
+        # were below the suite's floor, and read faintly over glass)
+        p.setFont(theme.font(9, QFont.DemiBold))
         p.setPen(c.dim)
         for rect, title in self._labels:
-            p.drawText(rect.adjusted(2, 0, 0, -4), Qt.AlignLeft | Qt.AlignBottom, title.upper())
+            p.drawText(rect.adjusted(2, 0, 0, -4), Qt.AlignLeft | Qt.AlignBottom, title)
         for item in self._items:
             if item.kind == 'op':
                 if self._mode == 'convert':

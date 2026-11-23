@@ -68,7 +68,7 @@ def word(job: Job, src: Path, target: str) -> None:
                                               AddToRecentFiles=False, Visible=False,
                                               NoEncodingDialog=True)
             except Exception as error:  # noqa: BLE001
-                raise UserError(f"Word couldn't open {src.name}: {_describe(error)}") from None
+                raise UserError(f"Word could not open {src.name}: {_describe(error)}") from None
             try:
                 job.progress(0.5)
                 if target == 'pdf':
@@ -79,7 +79,7 @@ def word(job: Job, src: Path, target: str) -> None:
                 else:
                     document.SaveAs2(str(out), FileFormat=WORD_FORMATS[target], AddToRecentFiles=False)
             except Exception as error:  # noqa: BLE001
-                raise UserError(f"Word couldn't save {out.name}: {_describe(error)}") from None
+                raise UserError(f"Word could not save {out.name}: {_describe(error)}") from None
             finally:
                 document.Close(SaveChanges=0)
         finally:
@@ -132,7 +132,7 @@ def excel(job: Job, src: Path, target: str) -> None:
             try:
                 book = _open_book(app, src, Path(scratch))
             except Exception as error:  # noqa: BLE001
-                raise UserError(f"Excel couldn't open {src.name}: {_describe(error)}") from None
+                raise UserError(f"Excel could not open {src.name}: {_describe(error)}") from None
             try:
                 job.progress(0.5)
                 if target == 'pdf':
@@ -143,7 +143,7 @@ def excel(job: Job, src: Path, target: str) -> None:
                         book.Worksheets(1).Activate()
                     book.SaveAs(str(out), FileFormat=EXCEL_FORMATS[target])
             except Exception as error:  # noqa: BLE001
-                raise UserError(f"Excel couldn't save {out.name}: {_describe(error)}") from None
+                raise UserError(f"Excel could not save {out.name}: {_describe(error)}") from None
             finally:
                 book.Close(SaveChanges=False)
         finally:
@@ -170,7 +170,7 @@ def powerpoint(job: Job, src: Path, target: str) -> None:
             try:
                 deck = app.Presentations.Open(str(src), ReadOnly=True, Untitled=False, WithWindow=False)
             except Exception as error:  # noqa: BLE001
-                raise UserError(f"PowerPoint couldn't open {src.name}: {_describe(error)}") from None
+                raise UserError(f"PowerPoint could not open {src.name}: {_describe(error)}") from None
             try:
                 if target == 'png':
                     slides = deck.Slides.Count
@@ -184,7 +184,7 @@ def powerpoint(job: Job, src: Path, target: str) -> None:
                     job.progress(0.5)
                     deck.SaveAs(str(out), POWERPOINT_FORMATS[target])
             except Exception as error:  # noqa: BLE001
-                raise UserError(f"PowerPoint couldn't save {out.name}: {_describe(error)}") from None
+                raise UserError(f"PowerPoint could not save {out.name}: {_describe(error)}") from None
             finally:
                 deck.Close()
         finally:

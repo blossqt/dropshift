@@ -20,7 +20,7 @@ def _open_pdfium(src: Path):
     try:
         return pdfium.PdfDocument(str(src))
     except pdfium.PdfiumError as error:
-        raise UserError(f"Can't open {src.name}: {error}") from None
+        raise UserError(f"Cannot open {src.name}: {error}") from None
 
 
 def to_images(job: Job, src: Path, target: str) -> None:

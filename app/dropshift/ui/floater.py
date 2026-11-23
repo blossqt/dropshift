@@ -10,9 +10,10 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import QFileInfo, QMimeData, QPoint, QPointF, QRectF, Qt, QUrl, Signal
-from PySide6.QtGui import QDrag, QFont, QFontMetrics, QPainter
-from PySide6.QtWidgets import QApplication, QFileIconProvider, QWidget
+from PySide6.QtGui import QColor, QDrag, QFont, QFontMetrics, QPainter
+from PySide6.QtWidgets import QApplication, QFileIconProvider, QMenu, QWidget
 
+from .. import win32
 from . import icons, theme
 
 SHADOW = 0 if theme.glass_on() else 14       # on glass, Windows draws the shadow
@@ -116,6 +117,28 @@ class FloatShelf(QWidget):
         self._hover = NOWHERE
         self.update()
 
+    def contextMenuEvent(self, event):
+        """A file's own choices, as a right-click on it in Explorer starts with."""
+        row = self._row_at(QPointF(event.pos()))
+        if row < 0:
+            return
+        path = self.paths[row]
+        menu = QMenu(self)
+        menu.addAction('Open', lambda: win32.shell_verb('open', path))
+        menu.addAction('Show in File Explorer', lambda: win32.show_in_explorer(path))
+        menu.addAction('Copy path', lambda: QApplication.clipboard().setText(str(path)))
+        menu.addSeparator()
+        menu.addAction('Remove from Float', lambda: self.remove(path))
+        menu.exec(event.globalPos())
+        menu.deleteLater()
+
+    def remove(self, path: Path) -> None:
+        self.paths = [p for p in self.paths if p != path]
+        if not self.paths:
+            self.close_shelf()
+        else:
+            self.add([])
+
     def _drag(self, paths: list[Path]) -> None:
         mime = QMimeData()
         mime.setUrls([QUrl.fromLocalFile(str(p)) for p in paths])
@@ -178,9 +201,9 @@ class FloatShelf(QWidget):
         metrics = QFontMetrics(p.font())
         for index, path in enumerate(self.paths[:MAX_ROWS]):
             row = QRectF(card.left() + 4, card.top() + HEADER_H + index * ROW_H, card.width() - 8, ROW_H)
-            if index == self._hover:
-                p.setPen(Qt.NoPen)
-                p.setBrush(c.chip)
+            if index == self._hover:            # a soft shade, as Windows' lists have: the chip colour
+                p.setPen(Qt.NoPen)                # vanished on light glass
+                p.setBrush(QColor(255, 255, 255, 26) if theme.is_dark() else QColor(0, 0, 0, 18))
                 p.drawRoundedRect(row, 8, 8)
             icon = self._icons.icon(QFileInfo(str(path))).pixmap(20, 20)
             p.drawPixmap(int(row.left() + 8), int(row.center().y() - 10), icon)

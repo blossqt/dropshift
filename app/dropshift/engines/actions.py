@@ -54,7 +54,7 @@ def _transfer(job: Job, move: bool) -> None:
         if src.parent.resolve() == dest.resolve() and move:
             continue
         if dest.resolve().is_relative_to(src.resolve()):
-            raise UserError(f"Can't put {src.name} inside itself")
+            raise UserError(f"Cannot put {src.name} inside itself")
         # Not claimed by the job on purpose: a failed move must never be
         # "cleaned up" by deleting what already reached the new folder.
         target = jobs.free_path(dest, src.name)
