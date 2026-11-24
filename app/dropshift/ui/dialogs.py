@@ -232,7 +232,7 @@ class CustomDialog(QDialog):
         self._mode.setCurrentIndex(1 if entry.get('mode') == 'actions' else 0)
         form.addRow('Shows in', self._mode)
         self._exts = QLineEdit(entry.get('exts', ''))
-        self._exts.setPlaceholderText('png, jpg - empty for any file')
+        self._exts.setPlaceholderText('png, jpg (empty for any file)')
         form.addRow('For', self._exts)
         self._each = QComboBox()
         self._each.addItem('Once for each file', True)
@@ -251,7 +251,7 @@ class CustomDialog(QDialog):
 
     def _ok(self) -> None:
         if not self._name.text().strip() or not self._command.text().strip():
-            QMessageBox.warning(self, 'Dropshift', 'It needs a name and a command.')
+            QMessageBox.warning(self, 'Dropshift', 'A name and a command are required.')
             return
         self.accept()
 
@@ -272,7 +272,7 @@ def _status_grid() -> QWidget:
         mark.setPixmap(icons.glyph('check' if found else 'cross', theme.ink() if found else theme.colors().dim, 16))
         grid.addWidget(mark, row, 0, Qt.AlignVCenter)
         grid.addWidget(label(name), row, 1)
-        grid.addWidget(label(what if found else f'Not found: no {what}', SMALL, role='dim'), row, 2)
+        grid.addWidget(label(what if found else f'Not installed. Required for {what}.', SMALL, role='dim'), row, 2)
     grid.setColumnStretch(2, 1)
     return widget
 
@@ -289,11 +289,11 @@ class WelcomeDialog(QDialog):
         logo = theme.Label()
         logo.setPixmap(icons.render_app_icon(48))
         top.addWidget(logo, 0, Qt.AlignTop)
-        title = suitesettings.titled('Dropshift is running', 'It runs in the tray, by the clock.')
+        title = suitesettings.titled('Dropshift is running', 'It runs in the tray.')
         top.addWidget(title, 1)
         layout.addLayout(top)
         layout.addSpacing(16)
-        steps = ['<b>1.</b> Start dragging any file, from Explorer, the desktop or a download.']
+        steps = ['<b>1.</b> Start dragging any file.']
         lines = [f'<b>{win32.KEY_LABELS[keys[m]]}</b> to {MODE_BLURBS[m].rstrip(".")}'
                  for m in MODES if keys.get(m, 'off') != 'off']
         steps.append('<b>2.</b> While it is still held, press ' + '; '.join(lines) + '.')
@@ -303,6 +303,6 @@ class WelcomeDialog(QDialog):
         text.setTextFormat(Qt.RichText)
         layout.addWidget(text)
         buttons = QDialogButtonBox(QDialogButtonBox.Ok)
-        buttons.button(QDialogButtonBox.Ok).setText('Got it')
+        buttons.button(QDialogButtonBox.Ok).setText('OK')
         buttons.accepted.connect(self.accept)
         layout.addWidget(buttons)

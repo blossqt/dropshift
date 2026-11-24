@@ -66,7 +66,7 @@ def zip_items(job: Job) -> None:
 def _inside(root: Path, name: str) -> Path:
     target = (root / name).resolve()
     if not target.is_relative_to(root.resolve()):
-        raise UserError(f'The archive tries to write outside its folder ({name}); not extracted')
+        raise UserError(f'The archive writes outside its folder ({name}). It was not extracted.')
     return target
 
 
@@ -88,7 +88,7 @@ def _unpack(job: Job, src: Path, dest: Path) -> None:
     else:
         seven = locate.seven_zip()
         if not seven:
-            raise UserError(f'7-Zip is needed to open {src.name}')
+            raise UserError(f'7-Zip is required to open {src.name}')
         result = win32.run_hidden([seven, 'x', '-y', '-bso0', '-bsp0', f'-o{dest}', src],
                                   capture_output=True, text=True, errors='replace')
         if result.returncode:
@@ -130,7 +130,7 @@ def repack(job: Job, src: Path, target: str) -> None:
         elif target == '7z':
             seven = locate.seven_zip()
             if not seven:
-                raise UserError('7-Zip is needed to make 7Z archives')
+                raise UserError('7-Zip is required to make 7Z archives')
             result = win32.run_hidden([seven, 'a', '-t7z', '-y', '-bso0', '-bsp0', out,
                                        *[item.name for item in contents]],
                                       cwd=root, capture_output=True, text=True, errors='replace')

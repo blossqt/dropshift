@@ -98,7 +98,7 @@ class Job:
         folder = self._output_folder or src.parent
         if not writable(folder):
             folder = win32.downloads_folder()
-            note = f'{src.parent} is read-only, so the result went to Downloads'
+            note = f'{src.parent} is read-only. The result was saved to Downloads.'
             if note not in self.notes:
                 self.notes.append(note)
         return folder

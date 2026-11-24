@@ -534,7 +534,7 @@ class Metadata(Base):
         self.assertEqual(metadata.location_of(metadata.describe(photo)), (47.375, 8.533333))
 
     def test_photo_without_exif_says_so(self):
-        self.assertIn('none', self.rows(self.s['png'])['Camera']['EXIF'])
+        self.assertIn('None', self.rows(self.s['png'])['Camera']['EXIF'])
 
     @unittest.skipUnless(locate.ffmpeg(), 'FFmpeg not found')
     def test_video(self):

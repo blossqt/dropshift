@@ -276,6 +276,6 @@ def compress(job: Job, src: Path) -> None:
 def _keep_if_smaller(job: Job, src: Path, out: Path) -> None:
     if out.stat().st_size >= src.stat().st_size:
         out.unlink()
-        job.notes.append(f'{src.name} is already as small as it gets')
+        job.notes.append(f'{src.name} cannot be made smaller')
         return
     job.add(out)

@@ -61,7 +61,7 @@ def to_text(job: Job, src: Path, target: str = 'txt') -> None:
     finally:
         document.close()
     if not any(p.strip() for p in pages):
-        raise UserError(f'{src.name} has no text in it - it may be scanned pictures of pages')
+        raise UserError(f'{src.name} has no text. Scanned pages can be read with Copy text.')
     out = job.output_for(src, 'txt')
     out.write_text('\n\n'.join(pages), encoding='utf-8')
     job.add(out)
@@ -177,6 +177,6 @@ def compress(job: Job, src: Path) -> None:
         writer.write(handle)
     if out.stat().st_size >= src.stat().st_size:
         out.unlink()
-        job.notes.append(f'{src.name} is already as small as it gets')
+        job.notes.append(f'{src.name} cannot be made smaller')
         return
     job.add(out)

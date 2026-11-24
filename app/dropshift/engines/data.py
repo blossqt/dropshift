@@ -41,7 +41,7 @@ def json_to_csv(job: Job, src: Path, target: str = 'csv') -> None:
         lists = [v for v in data.values() if isinstance(v, list) and v and isinstance(v[0], dict)]
         data = lists[0] if len(lists) == 1 else [data]
     if not isinstance(data, list) or not all(isinstance(row, dict) for row in data):
-        raise UserError(f'{src.name} is not a list of records, so it has no columns to make')
+        raise UserError(f'{src.name} is not a list of records')
     columns: list[str] = []
     for row in data:
         columns += [key for key in row if key not in columns]

@@ -576,9 +576,9 @@ class MediaEditor(QWidget):
         self._quality = self._combo([name for name, _ in QUALITIES], self._refresh)
         self._fast = QCheckBox('Fast trim')
         self._fast.setFocusPolicy(Qt.NoFocus)
-        self._fast.setToolTip('Copies the file instead of re-encoding it: done in seconds and loses\n'
-                              'nothing, but cuts at the nearest keyframe, so the start may come a\n'
-                              'moment early. Only for cutting (and removing the sound).')
+        self._fast.setToolTip('No re-encoding: fast and lossless, but cuts at the nearest keyframe,\n'
+                              'so the start may be slightly early. Works only for trimming and\n'
+                              'removing sound.')
         self._fast.toggled.connect(self._refresh)
         self._summary = theme.Label()
         self._summary.setEnabled(False)
@@ -892,7 +892,7 @@ class MediaEditor(QWidget):
     def _export_now(self) -> None:
         self._player.pause()
         self._export(self.path, self.edit())
-        self._summary.setText('Exporting - the card in the corner shows how far along it is')
+        self._summary.setText('Exporting. Progress shows in the corner.')
 
     def describe(self) -> str:
         """For the development pipe: what is open, and whether it is showing."""

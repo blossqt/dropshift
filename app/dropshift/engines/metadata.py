@@ -129,7 +129,7 @@ def _folder(path: Path) -> list[Section]:
         if time.monotonic() - start > FOLDER_TIME_LIMIT:
             complete = False
             break
-    more = '' if complete else ' (stopped counting - more than this)'
+    more = '' if complete else ' or more'
     return [('Contents', [('Files', f'{files:,}{more}'), ('Folders', f'{folders:,}{more}'),
                           ('Total size', _size(total) + more)])]
 
@@ -229,7 +229,7 @@ def _image(path: Path) -> list[Section]:
                 camera.append(('Altitude', f'{_ratio(gps[6]):.0f} m'))
         sections += [('Camera', camera), ('All EXIF', sorted(details))]
     if images.normal_ext(path) in ('jpg', 'png', 'webp', 'tiff', 'heic', 'avif') and not exif:
-        sections.append(('Camera', [('EXIF', 'none - no camera or location details')]))
+        sections.append(('Camera', [('EXIF', 'None')]))
     return sections
 
 

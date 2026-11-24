@@ -55,7 +55,7 @@ def _describe(error: Exception) -> str:
 
 def word(job: Job, src: Path, target: str) -> None:
     if not available('Word'):
-        raise UserError('Microsoft Word is needed for this')
+        raise UserError('This requires Microsoft Word')
     out = job.output_for(src, target)
     import win32com.client
     with _com():
@@ -120,7 +120,7 @@ def _open_book(app, src: Path, scratch: Path):
 
 def excel(job: Job, src: Path, target: str) -> None:
     if not available('Excel'):
-        raise UserError('Microsoft Excel is needed for this')
+        raise UserError('This requires Microsoft Excel')
     out = job.output_for(src, target)
     import win32com.client
     with _com(), tempfile.TemporaryDirectory(prefix='dropshift-') as scratch:
@@ -139,7 +139,7 @@ def excel(job: Job, src: Path, target: str) -> None:
                     book.ExportAsFixedFormat(0, str(out))
                 else:
                     if target == 'csv' and book.Worksheets.Count > 1:
-                        job.notes.append(f'{src.name}: CSV holds one sheet, so only the first was saved')
+                        job.notes.append(f'{src.name}: CSV holds one sheet. Only the first sheet was saved.')
                         book.Worksheets(1).Activate()
                     book.SaveAs(str(out), FileFormat=EXCEL_FORMATS[target])
             except Exception as error:  # noqa: BLE001
@@ -154,7 +154,7 @@ def excel(job: Job, src: Path, target: str) -> None:
 
 def powerpoint(job: Job, src: Path, target: str) -> None:
     if not available('PowerPoint'):
-        raise UserError('Microsoft PowerPoint is needed for this')
+        raise UserError('This requires Microsoft PowerPoint')
     stem, _ = jobs.split_name(src)
     if target == 'png':
         out = job.output_folder(src, f'{stem} slides')

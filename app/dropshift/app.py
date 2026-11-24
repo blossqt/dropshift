@@ -81,7 +81,7 @@ class Controller(QObject):
     def perform(self, op: Op, paths: list[Path]) -> None:
         taken, skipped = catalog.split(op, paths)
         if not taken:
-            self.toasts.show(op.label, 'Nothing here it can work on').finish(op.label, 'Nothing here it can work on')
+            self.toasts.show(op.label, 'No supported files').finish(op.label, 'No supported files')
             return
         windows = {'actions.float': self._float, 'tools.info': self._show_info,
                    'tools.edit': self._edit_media}
@@ -137,9 +137,9 @@ class Controller(QObject):
             traceback.print_exc()
             self.toasts.show(op.label).finish(f'{op.label} failed', str(error), error=True)
             return
-        done = {'actions.copy': f'Copied {_name(paths)} - paste it into any folder',
+        done = {'actions.copy': f'Copied {_name(paths)}',
                 'actions.copy_path': 'Copied the path' if len(paths) == 1 else f'Copied {len(paths)} paths',
-                'web.grabbit': 'Handed to Grabbit'}
+                'web.grabbit': 'Sent to Grabbit'}
         if op.id in done:
             self.toasts.show(done[op.id]).finish(done[op.id])
 
@@ -156,8 +156,8 @@ class Controller(QObject):
         outputs = job.outputs
         notes = list(job.notes)
         if job.skipped:
-            notes.append(f'{len(job.skipped)} skipped - {op.label} does not suit '
-                         f'{"it" if len(job.skipped) == 1 else "them"}')
+            notes.append(f'{len(job.skipped)} skipped. {op.label} does not support '
+                         f'{"that file" if len(job.skipped) == 1 else "those files"}.')
         if op.id in ('actions.move_to', 'actions.copy_to'):
             verb = 'Moved' if op.id == 'actions.move_to' else 'Copied'
             title = f'{verb} {_name(outputs)}' if outputs else 'Nothing was moved'

@@ -190,7 +190,7 @@ def compress_audio(job: Job, src: Path) -> None:
 def _keep_if_smaller(job: Job, src: Path, out: Path) -> None:
     if out.stat().st_size >= src.stat().st_size:
         out.unlink()
-        job.notes.append(f'{src.name} is already as small as it gets')
+        job.notes.append(f'{src.name} cannot be made smaller')
         return
     job.add(out)
 
@@ -452,7 +452,7 @@ def edit_media(job: Job, src: Path, edit: MediaEdit) -> None:
     info = probe(src)
     sound = _streams(info, 'audio')
     if not edit.sound_only and not edit.fast and info and not _streams(info, 'video'):
-        raise UserError(f'{src.name} has no picture, so it can only be saved as sound')
+        raise UserError(f'{src.name} has no picture. It can be saved only as audio.')
     target = _container(src) if edit.fast else edit.target
     out = job.output_for(src, target, 'edited')
     total = duration(info)

@@ -204,7 +204,7 @@ def _build() -> list[Op]:
 
     # Edit and Show metadata open windows; app.py's Controller opens them.
     tool('edit', 'Edit media', {'video', 'audio'}, None,
-         'Trim, change speed, volume or fades - and crop or rotate pictures - then export', 'scissors',
+         'Trim, change speed, volume and fades, crop or rotate, then export', 'scissors',
          needs=_has_ffmpeg, gui=True, max_files=4, also=frozenset({'gif'}),
          named=(('video', 'Edit video'), ('audio', 'Edit audio'), ('image', 'Edit GIF')))
     tool('compress', 'Compress', {'image', 'video', 'audio', 'pdf'},
@@ -218,20 +218,20 @@ def _build() -> list[Op]:
          by_kind({'image': partial(images.rotate, clockwise=True),
                   'video': partial(media.rotate_video, clockwise=True),
                   'pdf': partial(pdf.rotate, clockwise=True)}),
-         'Turn a copy a quarter turn clockwise', 'rotate_right', verb='Rotating')
+         'Rotate a copy 90° clockwise', 'rotate_right', verb='Rotating')
     tool('rotate_left', 'Rotate left', {'image', 'pdf'},
          by_kind({'image': partial(images.rotate, clockwise=False),
                   'pdf': partial(pdf.rotate, clockwise=False)}),
-         'Turn a copy a quarter turn anticlockwise', 'rotate_left', verb='Rotating')
+         'Rotate a copy 90° anticlockwise', 'rotate_left', verb='Rotating')
     tool('flip', 'Flip', {'image'}, each(images.flip), 'Mirror a copy left to right', 'flip',
          verb='Flipping')
     tool('grayscale', 'Grayscale', {'image'}, each(images.grayscale), 'Make a black-and-white copy',
          'grayscale', verb='Converting')
     tool('ocr', 'Copy text', {'image', 'pdf'}, ocr.copy_text,
-         'Read the words in it and copy them - Windows reads them, on this PC', 'scan',
+         'Copy the text in it to the clipboard', 'scan',
          needs=suiteocr.available, verb='Reading')
     tool('info', 'Show metadata', ANY, None,
-         'See what it says about itself: camera, location, author, codecs...', 'tag', gui=True)
+         'Camera, location, author, codecs and more', 'tag', gui=True)
     tool('strip', 'Remove metadata', {'image', 'video', 'audio', 'pdf'},
          by_kind({'image': images.strip_metadata, 'video': media.strip_metadata,
                   'audio': media.strip_metadata, 'pdf': pdf.strip_metadata}),
@@ -240,10 +240,10 @@ def _build() -> list[Op]:
          'Join them, in this order, into one PDF', 'combine', min_files=2, verb='Combining')
     tool('split', 'Split pages', {'pdf'}, each(pdf.split), 'Save every page as its own PDF',
          'split', verb='Splitting')
-    tool('join_audio', 'Join audio', {'audio'}, media.join_audio, 'Play them one after another, as one file',
+    tool('join_audio', 'Join audio', {'audio'}, media.join_audio, 'Join them, in this order, into one file',
          'combine', min_files=2, needs=_has_ffmpeg, verb='Joining')
     tool('join_video', 'Join videos', {'video'}, media.join_videos,
-         'Play them one after another, as one MP4', 'combine', min_files=2, needs=_has_ffmpeg, verb='Joining')
+         'Join them, in this order, into one MP4', 'combine', min_files=2, needs=_has_ffmpeg, verb='Joining')
     tool('mute', 'Remove sound', {'video'}, each(media.mute), 'Make a silent copy', 'mute',
          needs=_has_ffmpeg, verb='Muting')
     tool('frame', 'Grab frame', {'video'}, each(media.snapshot), 'Save a still from a third of the way in',
@@ -257,9 +257,9 @@ def _build() -> list[Op]:
         add(Op(id=f'actions.{id}', label=label, mode='actions', kinds=ANY, run=run, hint=hint,
                icon=icon, **extra))
 
-    action('copy', 'Copy', actions.copy_to_clipboard, 'Put it on the clipboard, ready to paste',
+    action('copy', 'Copy', actions.copy_to_clipboard, 'Copy it to the clipboard',
            'copy', gui=True)
-    action('copy_path', 'Copy path', actions.copy_paths, 'Copy where it is, as text', 'link', gui=True)
+    action('copy_path', 'Copy path', actions.copy_paths, 'Copy its full path', 'link', gui=True)
     action('float', 'Float', None, 'Keep it in a small window on top, to drag from later', 'pin',
            gui=True)
     action('move_to', 'Move to…', actions.move_to, 'Choose a folder to move it to', 'move',
@@ -309,9 +309,9 @@ def _web_ops(mode: str) -> list[Op]:
     """What heads every menu for something dragged out of a web page."""
     return [
         Op(id='web.download', label='Download', mode=mode, kinds=ANY, run=web.save,
-           hint='Save it as it is', icon='download', verb='Downloading'),
+           hint='Save the file', icon='download', verb='Downloading'),
         Op(id='web.grabbit', label='Grabbit', mode=mode, kinds=ANY, run=web.to_grabbit,
-           hint='Hand it to Grabbit, for a video, a post or a playlist', icon='video', gui=True,
+           hint='Download it with Grabbit', icon='video', gui=True,
            needs=lambda: web.grabbit() is not None),
     ]
 
