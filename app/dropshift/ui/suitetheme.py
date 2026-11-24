@@ -1527,6 +1527,7 @@ class _Frosting(QObject):
             _remember_place(obj)
             _stop_live(obj)
             _watch_around(obj, stop=True)
+            _let_go(obj)
         elif kind in (QEvent.Move, QEvent.Resize) and obj.isVisible() and _screen_glass(obj):
             gliding = getattr(obj, '_suite_gliding', False)
             if not gliding and not _waiting_for_paint(obj):
@@ -1538,6 +1539,20 @@ class _Frosting(QObject):
         elif kind == QEvent.ChildAdded and obj.isVisible():
             QTimer.singleShot(0, obj, lambda: _animate_parts(obj))
         return False
+
+
+_HELD_PICTURES = ('_suite_shot', '_suite_clean', '_suite_lens', '_suite_bridge', '_suite_backdrop_pixmap')
+
+
+def _let_go(window: QWidget) -> None:
+    """A window put away keeps none of its glass's pictures: the screen behind it (with its margins,
+    and a clean copy), its cut glass, its opening bridge and its scaled backdrop - a few MB a window,
+    held by every hidden settings window, card and panel. Each is taken or made again as it shows."""
+    for name in _HELD_PICTURES:
+        if getattr(window, name, None) is not None:
+            setattr(window, name, None)
+    window._suite_lens_key = None
+    window._suite_backdrop_key = None
 
 
 _BRIDGE_HOLD, _BRIDGE_FADE = 1200, 350    # ms: how long a frosted window's own glass stays, then fades

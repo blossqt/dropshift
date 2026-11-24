@@ -60,6 +60,10 @@ class DragWatcher(QObject):
 
     def _poll(self) -> None:
         button = win32.key_down(win32.primary_button())
+        if not button and not self._down:
+            # Idle, 25 times a second: the button is all that matters until it goes down - the keys
+            # held then are read as it does (a key already held is no trigger), so not each time.
+            return
         keys = {vk: win32.key_down(vk) for vk in self._modes}
         escape = win32.key_down(win32.VK_ESCAPE)
         pos = QCursor.pos()
