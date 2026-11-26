@@ -221,7 +221,7 @@ class CustomDialog(QDialog):
         self._command.setPlaceholderText('magick "{file}" -resize 50% "{folder}\\{stem} half.{ext}"')
         form.addRow('Command', self._command)
         note = theme.Label('{file} is the file’s path, {folder} its folder, {name} its name, {stem} its name without '
-                      'the extension and {ext} the extension - put them in quotes. {files} is every file, '
+                      'the extension and {ext} the extension. Put them in quotes. {files} is every file, '
                       'each in quotes. With none of these, the file goes on the end.')
         note.setWordWrap(True)
         note.setEnabled(False)

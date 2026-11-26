@@ -419,7 +419,7 @@ class AudioView(QWidget):
 # --------------------------------------------------------------------------- the window
 
 VIDEO_FORMATS = [('MP4', 'mp4'), ('WEBM', 'webm'), ('MOV', 'mov'), ('GIF', 'gif')]
-SOUND_FROM_VIDEO = [('MP3 - sound only', 'mp3'), ('M4A - sound only', 'm4a'), ('WAV - sound only', 'wav')]
+SOUND_FROM_VIDEO = [('MP3 (sound only)', 'mp3'), ('M4A (sound only)', 'm4a'), ('WAV (sound only)', 'wav')]
 AUDIO_FORMATS = [('MP3', 'mp3'), ('M4A', 'm4a'), ('WAV', 'wav'), ('FLAC', 'flac'), ('OGG', 'ogg'),
                  ('OPUS', 'opus'), ('AIFF', 'aiff')]
 LOSSLESS = ('wav', 'flac', 'aiff', 'gif')
@@ -576,8 +576,8 @@ class MediaEditor(QWidget):
         self._quality = self._combo([name for name, _ in QUALITIES], self._refresh)
         self._fast = QCheckBox('Fast trim')
         self._fast.setFocusPolicy(Qt.NoFocus)
-        self._fast.setToolTip('No re-encoding: fast and lossless, but cuts at the nearest keyframe,\n'
-                              'so the start may be slightly early. Works only for trimming and\n'
+        self._fast.setToolTip('No re-encoding, so it is fast and lossless, but it cuts at the nearest\n'
+                              'keyframe and the start may be slightly early. Works only for trimming and\n'
                               'removing sound.')
         self._fast.toggled.connect(self._refresh)
         self._summary = theme.Label()
