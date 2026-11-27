@@ -438,12 +438,12 @@ class DropMenu(QWidget):
         p.setFont(theme.font(10, QFont.DemiBold))
         p.setPen(c.text)
         metrics = QFontMetrics(p.font())
-        p.drawText(QRectF(left, badge.top() - 1, width, 20), Qt.AlignLeft | Qt.AlignVCenter,
+        theme.draw_line(p, QRectF(left, badge.top() - 1, width, 20), Qt.AlignLeft | Qt.AlignVCenter,
                    metrics.elidedText(title, Qt.ElideMiddle, int(width)))
         p.setFont(theme.font(9))
         p.setPen(c.dim)
         metrics = QFontMetrics(p.font())
-        p.drawText(QRectF(left, badge.top() + 18, width, 18), Qt.AlignLeft | Qt.AlignVCenter,
+        theme.draw_line(p, QRectF(left, badge.top() + 18, width, 18), Qt.AlignLeft | Qt.AlignVCenter,
                    metrics.elidedText(subtitle, Qt.ElideRight, int(width)))
 
     def _paint_tab(self, p: QPainter, c, item: _Item) -> None:
@@ -461,7 +461,7 @@ class DropMenu(QWidget):
         x = item.rect.center().x() - (name_w + (key_w + 5 if key else 0)) / 2
         p.setFont(name_font)
         p.setPen(c.text if on else c.dim)
-        p.drawText(QRectF(x, item.rect.top(), name_w + 2, item.rect.height()), Qt.AlignVCenter, name)
+        theme.draw_line(p, QRectF(x, item.rect.top(), name_w + 2, item.rect.height()), Qt.AlignVCenter, name)
         if key:
             pill = QRectF(x + name_w + 5, item.rect.center().y() - 8, key_w, 16)
             p.setPen(c.border)
@@ -508,5 +508,5 @@ class DropMenu(QWidget):
         p.setFont(theme.font(9))
         p.setPen(c.dim)
         metrics = QFontMetrics(p.font())
-        p.drawText(rect, Qt.AlignLeft | Qt.AlignVCenter,
+        theme.draw_line(p, rect, Qt.AlignLeft | Qt.AlignVCenter,
                    metrics.elidedText(text, Qt.ElideRight, int(rect.width())))

@@ -392,14 +392,14 @@ class AudioView(QWidget):
         p.setPen(QColor('#ececf1'))
         p.setFont(theme.serif(17))
         text = QRectF(art.right() + 22, art.top() + 30, self.width() - art.right() - 50, 34)
-        p.drawText(text, Qt.AlignLeft | Qt.AlignVCenter,
+        theme.draw_line(p, text, Qt.AlignLeft | Qt.AlignVCenter,
                    p.fontMetrics().elidedText(self.title, Qt.ElideRight, int(text.width())))
         p.setPen(QColor('#9a9aa6'))
         p.setFont(theme.font(10.5))
-        p.drawText(text.translated(0, 34), Qt.AlignLeft | Qt.AlignVCenter,
+        theme.draw_line(p, text.translated(0, 34), Qt.AlignLeft | Qt.AlignVCenter,
                    p.fontMetrics().elidedText(self.subtitle, Qt.ElideRight, int(text.width())))
         if self.note:
-            p.drawText(text.translated(0, 68), Qt.AlignLeft | Qt.AlignVCenter, self.note)
+            theme.draw_line(p, text.translated(0, 68), Qt.AlignLeft | Qt.AlignVCenter, self.note)
 
         r = self._wave_rect()
         if self.wave:
