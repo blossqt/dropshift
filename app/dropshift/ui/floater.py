@@ -184,7 +184,7 @@ class FloatShelf(QWidget):
         p.setFont(theme.font(9, QFont.DemiBold))
         p.setPen(c.dim)
         count = len(self.paths)
-        p.drawText(QRectF(card.left() + 32, card.top(), card.width() - 70, HEADER_H),
+        theme.draw_line(p, QRectF(card.left() + 32, card.top(), card.width() - 70, HEADER_H),
                    Qt.AlignVCenter, f'Float · {count} item{"s" if count != 1 else ""}')
         if count > 1:
             pill = self._all_rect()
@@ -209,10 +209,10 @@ class FloatShelf(QWidget):
             p.drawPixmap(int(row.left() + 8), int(row.center().y() - 10), icon)
             p.setPen(c.text)
             text_w = int(row.width() - 44)
-            p.drawText(QRectF(row.left() + 36, row.top(), text_w, ROW_H), Qt.AlignVCenter,
+            theme.draw_line(p, QRectF(row.left() + 36, row.top(), text_w, ROW_H), Qt.AlignVCenter,
                        metrics.elidedText(path.name or str(path), Qt.ElideMiddle, text_w))
         if count > MAX_ROWS:
             p.setPen(c.dim)
-            p.drawText(QRectF(card.left() + 40, card.top() + HEADER_H + MAX_ROWS * ROW_H, 200, ROW_H),
+            theme.draw_line(p, QRectF(card.left() + 40, card.top() + HEADER_H + MAX_ROWS * ROW_H, 200, ROW_H),
                        Qt.AlignVCenter, f'and {count - MAX_ROWS} more')
         p.end()

@@ -124,13 +124,13 @@ class Toast(QWidget):
         p.setFont(theme.font(9.5, QFont.DemiBold))
         p.setPen(c.error if self.error else c.text)
         metrics = QFontMetrics(p.font())
-        p.drawText(QRectF(left, card.top() + 10, width, 22), Qt.AlignVCenter,
+        theme.draw_line(p, QRectF(left, card.top() + 10, width, 22), Qt.AlignVCenter,
                    metrics.elidedText(self.title, Qt.ElideMiddle, int(width)))
         p.setFont(theme.font(9))
         p.setPen(c.dim)
         metrics = QFontMetrics(p.font())
         detail_w = width + 30 if not self.outputs else width - 80
-        p.drawText(QRectF(left, card.top() + 32, detail_w, 18), Qt.AlignVCenter,
+        theme.draw_line(p, QRectF(left, card.top() + 32, detail_w, 18), Qt.AlignVCenter,
                    metrics.elidedText(self.detail, Qt.ElideRight, int(detail_w)))
 
         if self.fraction is not None:
